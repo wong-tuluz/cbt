@@ -1,13 +1,10 @@
 import type { INestApplication } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger'
 import { auth } from '../../modules/auth/auth'
-import { APP_PORT, BETTER_AUTH_URL } from '../config'
 
-async function fetchAuthSpec(baseURL: string): Promise<Partial<OpenAPIObject>> {
+async function getAuthSpec(): Promise<Partial<OpenAPIObject>> {
     try {
-        const res = await auth.handler(new Request(`${baseURL}/api/auth/open-api/generate-schema`))
-        if (!res.ok) return {}
-        return res.json()
+        return await auth.api.generateOpenAPISchema() as Partial<OpenAPIObject>
     } catch {
         return {}
     }
@@ -42,8 +39,7 @@ export async function setupSwagger(app: INestApplication): Promise<void> {
         .build()
 
     const nestDoc = SwaggerModule.createDocument(app, config)
-    const baseURL = BETTER_AUTH_URL ?? `http://localhost:${APP_PORT}`
-    const authSpec = await fetchAuthSpec(baseURL)
+    const authSpec = await getAuthSpec()
     const doc = mergeAuthSpec(nestDoc, authSpec)
 
     SwaggerModule.setup('/openapi', app, doc, {
