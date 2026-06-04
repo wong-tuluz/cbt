@@ -89,15 +89,27 @@ export class PengerjaanService {
 
     async warn(sessionId: string) {
         const session = await this.findById(sessionId);
+        const newStrike = session.strike + 1;
         await db.update(workSessionTable)
-            .set({ strike: session.strike + 1, updatedAt: new Date() })
+            .set({ strike: newStrike, updatedAt: new Date() })
             .where(eq(workSessionTable.id, sessionId));
+        
+        return {
+            id: session.id,
+            status: session.status,
+            strike: newStrike,
+        };
     }
 
     async unwarn(sessionId: string) {
         await db.update(workSessionTable)
             .set({ strike: 0, updatedAt: new Date() })
             .where(eq(workSessionTable.id, sessionId));
+
+        return {
+            id: sessionId,
+            strike: 0,
+        };
     }
 
     private async upsert(session: any) {
