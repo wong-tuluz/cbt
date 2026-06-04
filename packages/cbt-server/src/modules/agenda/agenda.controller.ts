@@ -4,6 +4,7 @@ import {
     Param,
     Query,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { AgendaService } from './agenda.service';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { Session, } from '@thallesp/nestjs-better-auth'
@@ -17,6 +18,7 @@ export class AgendaController {
     ) { }
 
     @Get()
+    @ApiQuery({ name: 'siswaId', required: false })
     async get(
         @Session() session: UserSession,
         @Query("siswaId") siswaId?: string

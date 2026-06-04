@@ -1,4 +1,5 @@
 import { Get, Query, Post, Body, Param, UnauthorizedException, Controller } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { Session } from '@thallesp/nestjs-better-auth'
 import { createZodDto } from "nestjs-zod";
@@ -21,6 +22,9 @@ export class PengerjaanController {
     ) { }
 
     @Get()
+    @ApiQuery({ name: 'siswaId', required: false })
+    @ApiQuery({ name: 'jadwalId', required: false })
+    @ApiQuery({ name: 'status', required: false, enum: ['in_progress', 'finished'] })
     async listAll(
         @Session() session: UserSession,
         @Query('siswaId') siswaId?: string,

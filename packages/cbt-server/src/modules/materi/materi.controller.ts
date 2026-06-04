@@ -8,6 +8,7 @@ import {
     Post,
     Query,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import z from 'zod';
 import { MateriService } from './materi.service';
 import { createZodDto } from 'nestjs-zod';
@@ -56,6 +57,7 @@ export class MateriController {
     }
 
     @Get()
+    @ApiQuery({ name: 'paketSoalId', required: false })
     async getAll(@Query('paketSoalId') paketSoalId: string) {
         return this.materiService.findByPaketSoalId(paketSoalId);
     }
