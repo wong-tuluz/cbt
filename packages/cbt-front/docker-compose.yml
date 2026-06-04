@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  cbt_fe:
+    container_name: cbt_fe
+    build: 
+      context: .
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    restart: always
+    ports:
+      - "8880:8880"
+    # dev {
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    # command: npm run dev -- --host 
+    # }
