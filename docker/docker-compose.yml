@@ -1,0 +1,17 @@
+services:
+  integral-erp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: integral-erp
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    ports:
+      - "${PORT:-5000}:${PORT:-5000}"
+    environment:
+      PORT: ${PORT:-5000}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    env_file:
+      - .env
+    restart: unless-stopped

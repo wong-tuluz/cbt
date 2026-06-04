@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { createAuthClient } from "better-auth/client"
 import { usernameClient, adminClient } from "better-auth/client/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, username } from "better-auth/plugins"
+import { admin, openAPI, username } from "better-auth/plugins"
 import * as schema from "../../common/db/schema";
 import { db } from "../../common/db/drizzle";
 import { redisInstance as redis } from "../redis/redis.provider";
@@ -19,6 +19,7 @@ export const auth = betterAuth({
     plugins: [
         username(),
         admin(),
+        openAPI()
     ],
     session: {
         expiresIn: 60 * 60 * 24 * 1,
