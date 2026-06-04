@@ -25,11 +25,13 @@ RUN pnpm nx run cbt-front:build
 
 
 
-FROM base AS printing-build
+FROM base AS server-build
 
 COPY ./packages/cbt-server /app/packages/cbt-server
 RUN pnpm nx run cbt-server:build
 RUN pnpm --filter cbt-server --prod --no-optional deploy /app/dist/cbt-server
+RUN cp -r /app/packages/cbt-server/dist /app/dist/cbt-server/dist && \
+    cp -r /app/packages/cbt-server/drizzle /app/dist/cbt-server/drizzle
 
 
 
@@ -43,11 +45,11 @@ ENV VITE_API_URL='/api'
 COPY ./packages/cbt-server/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-COPY --chown=1000 --from=printing-build /app/dist/cbt-server/dist /app/dist
-COPY --chown=1000 --from=printing-build /app/dist/cbt-server/node_modules /app/node_modules
+COPY --chown=1000 --from=server-build /app/dist/cbt-server/dist /app/dist
+COPY --chown=1000 --from=server-build /app/dist/cbt-server/node_modules /app/node_modules
 
-# COPY --chown=1000 --from=printing-build /app/dist/cbt-server/drizzle /app/drizzle
-COPY --chown=1000 --from=printing-build /app/dist/cbt-server/package.json /app/
+COPY --chown=1000 --from=server-build /app/dist/cbt-server/drizzle /app/drizzle
+COPY --chown=1000 --from=server-build /app/dist/cbt-server/package.json /app/
 
 USER 1000
 
@@ -59,7 +61,7 @@ CMD ["node", "dist/src/main"]
 
 
 
-FROM cbt-server AS integral-erp
+FROM cbt-server AS cbt
 
 COPY --chown=1000 --from=front-build /app/packages/cbt-front/dist /app/dist/public
 

@@ -1,17 +1,34 @@
 services:
-  integral-erp:
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+
+  cbt:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      target: integral-erp
+      target: cbt
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
     ports:
       - "${PORT:-5000}:${PORT:-5000}"
     environment:
       PORT: ${PORT:-5000}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      
+      LMS_BO_ID: ${LMS_BO_ID}
+      LMS_BO_URL: ${LMS_BO_URL}
+      LMS_BO_KEY: ${LMS_BO_KEY}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+
+    depends_on:
+      - redis
     env_file:
       - .env
     restart: unless-stopped

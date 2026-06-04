@@ -9,7 +9,6 @@
     "lint": "nx run-many -t lint"
   },
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@nx/js": "22.7.5",
     "@swc-node/register": "1.11.1",

@@ -14,9 +14,16 @@ import { CoreSyncModule } from './modules/core-sync/core-sync.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      renderPath: '/*path',
+      exclude: ['/api/*path', '/openapi', '/openapi/*path'],
+    }),
     ScheduleModule.forRoot(),
     AuthModule,
     MateriModule,

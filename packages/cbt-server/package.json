@@ -30,6 +30,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.19",
     "@nestjs/schedule": "^5.0.1",
+    "@nestjs/serve-static": "^5.0.5",
     "@nestjs/swagger": "^11.4.1",
     "@scalar/nestjs-api-reference": "^1.1.10",
     "@thallesp/nestjs-better-auth": "^2.6.0",
