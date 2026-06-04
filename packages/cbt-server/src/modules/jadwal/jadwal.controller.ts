@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
+import { ApiQuery } from "@nestjs/swagger";
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { Session } from '@thallesp/nestjs-better-auth'
 import { JadwalService } from "./jadwal.service";
@@ -12,6 +13,8 @@ export class JadwalController {
     ) { }
 
     @Get()
+    @ApiQuery({ name: 'siswaId', required: false })
+    @ApiQuery({ name: 'agendaId', required: false })
     async getAll(
         @Session() session: UserSession,
         @Query('siswaId') siswaId?: string,

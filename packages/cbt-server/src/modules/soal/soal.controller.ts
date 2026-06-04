@@ -9,6 +9,7 @@ import {
     Post,
     Query,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import { SoalService } from './soal.service';
@@ -85,6 +86,7 @@ export class SoalController {
     }
 
     @Get()
+    @ApiQuery({ name: 'materiSoalId', required: false })
     async getAll(@Query('materiSoalId') materiSoalId: string) {
         return this.soalService.findByMateriSoalId(materiSoalId);
     }

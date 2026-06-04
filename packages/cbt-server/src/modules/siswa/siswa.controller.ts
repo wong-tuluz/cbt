@@ -8,6 +8,7 @@ import {
     ParseIntPipe,
     UnauthorizedException,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { SiswaService } from './siswa.service';
 import { db } from 'src/common/db';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
@@ -55,6 +56,10 @@ export class SiswaController {
     constructor(readonly service: SiswaService) { }
 
     @Get()
+    @ApiQuery({ name: 'kelas', required: false })
+    @ApiQuery({ name: 'agendaId', required: false })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    @ApiQuery({ name: 'offset', required: false, type: Number })
     async get(
         @Session() session: UserSession,
         @Query("kelas") kelas?: string,
