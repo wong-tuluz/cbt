@@ -1,0 +1,19 @@
+{
+    "targets": {
+        "dev": {
+            "executor": "nx:run-commands",
+            "continuous": true,
+            "options": {
+                "command": "vite --port 5173",
+                "cwd": "packages/cbt-front"
+            }
+        },
+        "build": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "vite build",
+                "cwd": "packages/cbt-front"
+            }
+        }
+    }
+}

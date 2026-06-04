@@ -1,0 +1,71 @@
+{
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "sourceRoot": "packages/cbt-server/src",
+    "targets": {
+        "build": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "pnpm exec nest build",
+                "cwd": "packages/cbt-server"
+            }
+        },
+        "dev": {
+            "executor": "nx:run-commands",
+            "continuous": true,
+            "options": {
+                "command": "nest start --watch",
+                "cwd": "packages/cbt-server"
+            }
+        },
+        "serve": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "node dist/main",
+                "cwd": "packages/cbt-server"
+            }
+        },
+        "prune-lockfile": {
+            "dependsOn": [
+                "build"
+            ],
+            "cache": true,
+            "executor": "@nx/js:prune-lockfile",
+            "outputs": [
+                "{workspaceRoot}/packages/cbt-server/dist/package.json",
+                "{workspaceRoot}/packages/cbt-server/dist/pnpm-lock.yaml"
+            ],
+            "options": {
+                "buildTarget": "build"
+            }
+        },
+        "prune": {
+            "dependsOn": [
+                "prune-lockfile"
+            ],
+            "executor": "nx:noop"
+        },
+        "copy-frontend": {
+            "dependsOn": [
+                {
+                    "projects": [
+                        "integral-front"
+                    ],
+                    "target": "build"
+                }
+            ],
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "rm -rf public && cp -r ../integral-front/dist public",
+                "cwd": "packages/cbt-server"
+            }
+        },
+        "build-full": {
+            "dependsOn": [
+                "build",
+                "copy-frontend"
+            ],
+            "executor": "nx:noop"
+        }
+    }
+}
