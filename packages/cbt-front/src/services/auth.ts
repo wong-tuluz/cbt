@@ -33,8 +33,8 @@ export interface UserInfo {
 
 // Login ke API Better Auth
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  return api.post<LoginResponse>("/api/auth/sign-in/username", { 
-    username, 
+  return api.post<LoginResponse>("/auth/sign-in/username", {
+    username,
     password,
     callbackURL: "/dashboard" // opsional
   })
@@ -56,11 +56,11 @@ export async function saveAuthData(response: LoginResponse): Promise<void> {
   try {
     // Panggil endpoint /me
     const meResponse = await api.get<MeResponse>("/me")
-    
+
     if (!meResponse.success || !meResponse.data) {
       throw new Error('Gagal mendapatkan data dari /me')
     }
-    
+
     // Buat user data dari response /me
     const userData: UserInfo = {
       id: meResponse.data.userId,
@@ -71,12 +71,12 @@ export async function saveAuthData(response: LoginResponse): Promise<void> {
       email: response.user.email,
       role: meResponse.data.role
     }
-    
+
     // Simpan ke localStorage dengan key "user"
     localStorage.setItem("user", JSON.stringify(userData))
-    
+
     console.log('User data saved to localStorage:', userData)
-    
+
   } catch (error) {
     console.error('Error in saveAuthData:', error)
     throw error
@@ -86,7 +86,7 @@ export async function saveAuthData(response: LoginResponse): Promise<void> {
 export function getUser(): UserInfo | null {
   const userStr = localStorage.getItem("user")
   if (!userStr) return null
-  
+
   try {
     return JSON.parse(userStr)
   } catch {
@@ -101,7 +101,7 @@ export function hasAuthCookie(): boolean {
 }
 
 export function logout() {
-  api.post("/api/auth/sign-out")
+  api.post("/auth/sign-out")
   // Hapus user data
   localStorage.removeItem("user")
   // localStorage.removeItem("soal")
@@ -112,10 +112,10 @@ export function isAuthenticated(): boolean {
   const hasCookie = document.cookie
     .split('; ')
     .some(row => row.startsWith('better-auth.session_token='))
-  
+
   // Cek apakah ada user data di localStorage
   const hasUser = !!localStorage.getItem("user")
-  
+
   // Login valid jika ada cookie DAN user data
   return hasCookie && hasUser
 }
