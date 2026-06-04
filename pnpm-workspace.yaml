@@ -1,2 +1,11 @@
 packages:
   - 'packages/*'
+
+allowBuilds:
+  esbuild: true
+  vue-demi: true
+  nx: true
+  "@nestjs/core": true
+  "@nestjs/swc": true
+  "unrs-resolver": true
+  "@swc/core": true
