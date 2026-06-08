@@ -109,7 +109,7 @@ export class CoreSyncService {
                         materiSoalId: materiSoal.id,
                         prompt: soal.soal,
                         type: "single-choice" as SoalType,
-                        order: soal.nomor_soal,
+                        order: soal.nomor_soal ?? 0,
                         weightCorrect: soal.bobot_benar,
                         weightWrong: soal.bobot_salah,
                         remoteId: soal.id,

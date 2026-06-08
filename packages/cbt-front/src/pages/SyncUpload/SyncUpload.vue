@@ -106,24 +106,15 @@
                     </div>
                     
                     <Button
-                      v-if="!event.synced"
                       @click="confirmSyncEvent(event)"
                       :disabled="!!syncingEventId"
                       size="sm"
                       class="gap-1.5 flex-shrink-0"
+                      :variant="event.synced ? 'outline' : 'default'"
                     >
-                      <DownloadIcon class="w-3 h-3" />
-                      Sync
-                    </Button>
-                    <Button
-                      v-else
-                      variant="outline"
-                      size="sm"
-                      class="gap-1.5 flex-shrink-0"
-                      disabled
-                    >
-                      <CheckCircleIcon class="w-3 h-3" />
-                      Synced
+                      <RefreshCwIcon v-if="event.synced" class="w-3 h-3" />
+                      <DownloadIcon v-else class="w-3 h-3" />
+                      {{ event.synced ? 'Re-sync' : 'Sync' }}
                     </Button>
                   </div>
                 </div>
@@ -374,7 +365,6 @@ import { useRouter } from 'vue-router'
 import {
   DownloadCloudIcon,
   UploadCloudIcon,
-  CheckCircleIcon,
   DownloadIcon,
   UploadIcon,
   ClockIcon,
