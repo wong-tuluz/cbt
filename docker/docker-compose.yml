@@ -1,6 +1,6 @@
 services:
-  container_name: cbt-redis
   redis:
+    container_name: cbt-redis
     image: redis:8-alpine
     restart: unless-stopped
 
