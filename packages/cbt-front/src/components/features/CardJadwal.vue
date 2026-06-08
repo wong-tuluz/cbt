@@ -52,7 +52,7 @@
         </div>
         <div class="flex items-center gap-2 text-muted-foreground col-span-2 md:col-span-1">
           <CalendarIcon class="w-4 h-4" />
-          <span class="truncate">{{ date }} pukul {{ time }}</span>
+          <span class="truncate">{{ date }}.{{ time }}</span>
         </div>
       </div>
 
