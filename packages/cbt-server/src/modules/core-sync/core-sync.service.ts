@@ -377,6 +377,15 @@ export class CoreSyncService {
     }
 
     private parseMysqlDatetime(value: string): Date {
-        return new Date(value.replace(' ', 'T') + '+07:00');
+        const date = new Date(value.replace(' ', 'T') + "+07:00");
+        const utcDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+            date.getUTCHours() - 7,
+            date.getUTCMinutes(),
+            date.getUTCSeconds()
+        )
+        return utcDate;
     }
 }

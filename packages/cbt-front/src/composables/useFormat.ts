@@ -2,6 +2,7 @@ export const useFormat = () => {
   const fmtDate = (d: string | Date) => {
     const dd = new Date(d)
     return dd.toLocaleString("id-ID", {
+      timeZone: "UTC",
       weekday: "long",
       day: "2-digit",
       month: "long",
@@ -15,6 +16,7 @@ export const useFormat = () => {
   const fmtDateTimeShort = (d: string | Date) => {
     const dd = new Date(d)
     return dd.toLocaleString("id-ID", {
+      timeZone: "UTC",
       weekday: "short",
       day: "2-digit",
       month: "short",

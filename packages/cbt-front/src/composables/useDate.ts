@@ -54,28 +54,31 @@ export function useDate() {
 }
 
 export function formatDateTime(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'long', 
+  return new Date(isoString).toLocaleDateString('id-ID', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
     year: 'numeric' ,
-    hour: '2-digit', 
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: false 
+    hour12: false
   });
 }
 
 export function formatDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+  return new Date(isoString).toLocaleDateString('id-ID', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   });
 }
 
 export function formatTime(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString('id-ID', { 
-    hour: '2-digit', 
+  return new Date(isoString).toLocaleTimeString('id-ID', {
+    timeZone: 'UTC',
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: false 
+    hour12: false
   });
 }
