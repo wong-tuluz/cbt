@@ -377,6 +377,6 @@ export class CoreSyncService {
     }
 
     private parseMysqlDatetime(value: string): Date {
-        return new Date(value.replace(' ', 'T'));
+        return new Date(value.replace(' ', 'T') + '+07:00');
     }
 }
