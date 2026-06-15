@@ -15,6 +15,7 @@ import DetailHasilUjianPage from "@/pages/UjianHasil/DetailHasilUjianPage.vue"
 import ManagementEvent from "@/pages/ManagementEvent/ManagementEvent.vue"
 import ManagementSiswaPage from "@/pages/ManagementSiswa/ManagementSiswaPage.vue"
 import ManagementSessionPage from "@/pages/ManagementEvent/ManagementSessionPage.vue"
+import ProktorDetailSessionPage from "@/pages/ManagementEvent/ProktorDetailSessionPage.vue"
 import AksesPage from "@/pages/Akses/AksesPage.vue"
 import { hasPermission } from "@/composables/usePermission"
 import { getSetting } from "@/services/aksesService"
@@ -161,15 +162,25 @@ const routes = [
       requiresPermission: "MANAGEMENT_EVENT.READ"
     } 
   },
-  { 
-    path: "/management-event/:id", 
-    component: ManagementSessionPage, 
-    meta: { 
-      layout: "app", 
-      requiresAuth: true, 
+  {
+    path: "/management-event/:id",
+    component: ManagementSessionPage,
+    meta: {
+      layout: "app",
+      requiresAuth: true,
       title: "Management Session – SMK PAKEM",
       requiresPermission: "MANAGEMENT_EVENT.READ"
-    } 
+    }
+  },
+  {
+    path: "/management-event/:id/:sessionId",
+    component: ProktorDetailSessionPage,
+    meta: {
+      layout: "app",
+      requiresAuth: true,
+      title: "Detail Jawaban Siswa – SMK PAKEM",
+      requiresPermission: "MANAGEMENT_EVENT.READ"
+    }
   },
   { 
     path: "/akses", 
