@@ -88,7 +88,8 @@
                   <XCircleIcon v-else-if="option.isSelected && !option.isCorrect" class="w-4 h-4 text-destructive" />
                   <div v-else class="w-3 h-3 rounded-full border border-border"></div>
                 </div>
-                <span class="flex-1">{{ option.value }}</span>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <span class="flex-1" v-html="option.value"></span>
                 <div class="flex gap-1">
                   <span v-if="option.isSelected" class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                     Dipilih
