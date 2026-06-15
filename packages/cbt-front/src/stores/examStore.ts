@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ExamSession } from '@/types/IExam'
-import { getExamById, submitAnswer, submitExam, type SubmitAnswerPayload } from '@/services/examService'
+import { getExamById, submitAnswer, submitExam, getSessionState, type SubmitAnswerPayload } from '@/services/examService'
 
 export const useExamStore = defineStore('exam', () => {
   // State
@@ -9,8 +9,57 @@ export const useExamStore = defineStore('exam', () => {
   const currentQuestionIndex = ref(0)
   const lastSavedAt = ref<string | null>(null)
   const timerInterval = ref<number | null>(null)
+  const resyncInterval = ref<number | null>(null)
   const examDuration = ref<number>(90 * 60)
   const examEndTime = ref<number | null>(null)
+
+  // Submission serializer — only one submit in-flight at a time
+  let submitQueue: Promise<void> = Promise.resolve()
+
+  const enqueueSubmit = (fn: () => Promise<void>): Promise<void> => {
+    submitQueue = submitQueue.then(() => fn()).catch(() => {/* errors handled inside fn */})
+    return submitQueue
+  }
+
+  // Retry queue: soalId → attempt count. Payload is always rebuilt from current local state at flush time.
+  const pendingRetries = ref<Map<string, number>>(new Map())
+  const hasPendingRetries = computed(() => pendingRetries.value.size > 0)
+
+  const RETRY_QUEUE_KEY = (sessionId: string) => `exam_retry_${sessionId}`
+  const MAX_ATTEMPTS = 5
+
+  const savePendingRetries = (sessionId: string) => {
+    localStorage.setItem(RETRY_QUEUE_KEY(sessionId), JSON.stringify(Array.from(pendingRetries.value.entries())))
+  }
+
+  const loadPendingRetries = (sessionId: string) => {
+    const raw = localStorage.getItem(RETRY_QUEUE_KEY(sessionId))
+    if (!raw) return
+    try {
+      const entries: [string, number][] = JSON.parse(raw)
+      pendingRetries.value = new Map(entries)
+    } catch {
+      localStorage.removeItem(RETRY_QUEUE_KEY(sessionId))
+    }
+  }
+
+  const clearPendingRetries = (sessionId: string) => {
+    pendingRetries.value.clear()
+    localStorage.removeItem(RETRY_QUEUE_KEY(sessionId))
+  }
+
+  const buildPayloadForQuestion = (soalId: string): SubmitAnswerPayload | null => {
+    if (!session.value) return null
+    const q = session.value.questions.find(q => q.soalId === soalId)
+    if (!q) return null
+    return {
+      soalId: q.soalId,
+      marked: q.isMarked,
+      jawaban: q.options
+        .filter(opt => opt.isSelected)
+        .map(opt => ({ jawabanSoalId: opt.jawabanSoalId, value: opt.value }))
+    }
+  }
 
   // Getters
   const currentQuestion = computed(() => {
@@ -112,11 +161,13 @@ export const useExamStore = defineStore('exam', () => {
     }
     
     currentQuestionIndex.value = 0
+    loadPendingRetries(sessionId)
     saveToLocalStorage()
     startTimer()
-    
+    startResyncInterval()
+
     return true
-    
+
   } catch (error) {
     console.error('Failed to initialize exam:', error)
     throw error
@@ -187,34 +238,94 @@ export const useExamStore = defineStore('exam', () => {
     // Jawaban hanya di-submit saat pindah soal
   }
 
-  // Submit jawaban per soal ke API
+  // Submit jawaban per soal ke API — serialized, queues on failure for retry
   const submitAnswerToAPI = async () => {
     if (!session.value || !currentQuestion.value) return
-    
-    try {
-      const question = currentQuestion.value
-      
-      // Build payload sesuai API
-      const payload: SubmitAnswerPayload = {
-        soalId: question.soalId,
-        marked: question.isMarked,
-        jawaban: question.options
-          .filter(opt => opt.isSelected)
-          .map(opt => ({
-            jawabanSoalId: opt.jawabanSoalId,
-            value: opt.value
-          }))
+
+    const soalId = currentQuestion.value.soalId
+    pendingRetries.value.delete(soalId)
+
+    const payload = buildPayloadForQuestion(soalId)
+    if (!payload) return
+
+    const sessionId = session.value.id
+    await enqueueSubmit(async () => {
+      try {
+        await submitAnswer(sessionId, payload)
+      } catch (error) {
+        console.error('Failed to submit answer, queuing for retry:', error)
+        pendingRetries.value.set(soalId, 1)
+        savePendingRetries(sessionId)
       }
-      
-      // Call service untuk POST ke API
-      await submitAnswer(session.value.id, payload)
-      
-      console.log('Answer submitted to API:', payload)
-      
-    } catch (error) {
-      console.error('Failed to submit answer to API:', error)
-      // Tidak throw error agar UX tidak terganggu
+    })
+  }
+
+  // Drain the retry queue serially, rebuilding payloads from current local state each time
+  const flushPendingRetries = async () => {
+    if (!session.value || pendingRetries.value.size === 0) return
+
+    const sessionId = session.value.id
+
+    for (const [soalId, attempts] of Array.from(pendingRetries.value.entries())) {
+      if (attempts >= MAX_ATTEMPTS) continue
+
+      const payload = buildPayloadForQuestion(soalId)
+      if (!payload) {
+        pendingRetries.value.delete(soalId)
+        continue
+      }
+
+      await enqueueSubmit(async () => {
+        try {
+          await submitAnswer(sessionId, payload)
+          pendingRetries.value.delete(soalId)
+        } catch {
+          pendingRetries.value.set(soalId, attempts + 1)
+        }
+      })
     }
+    savePendingRetries(sessionId)
+  }
+
+  // Sync local state from server — reconcile isAnswered / isSelected
+  const syncStateFromServer = async () => {
+    if (!session.value) return
+
+    try {
+      const res = await getSessionState(session.value.id)
+      if (!res.success || !Array.isArray(res.data)) return
+
+      const serverMap = new Map(res.data.map((q: { soalId: string; isAnswered: boolean; isMarked: boolean; options: Array<{ jawabanSoalId: string; isSelected: boolean }> }) => [q.soalId, q]))
+
+      for (const localQ of session.value.questions) {
+        const serverQ = serverMap.get(localQ.soalId)
+        if (!serverQ) continue
+
+        // Only override local selection if server has an answer and local doesn't
+        // (local is authoritative for in-progress changes; server fills gaps from failed submits)
+        if (serverQ.isAnswered && !localQ.isAnswered) {
+          localQ.isAnswered = true
+          localQ.isMarked = serverQ.isMarked
+          for (const localOpt of localQ.options) {
+            const serverOpt = serverQ.options.find((o: { jawabanSoalId: string; isSelected: boolean }) => o.jawabanSoalId === localOpt.jawabanSoalId)
+            if (serverOpt) localOpt.isSelected = serverOpt.isSelected
+          }
+        }
+      }
+
+      session.value.answeredCount = session.value.questions.filter(q => q.isAnswered).length
+      saveToLocalStorage()
+    } catch (error) {
+      console.error('State resync failed:', error)
+    }
+  }
+
+  const startResyncInterval = () => {
+    if (resyncInterval.value) clearInterval(resyncInterval.value)
+    resyncInterval.value = window.setInterval(async () => {
+      await flushPendingRetries()
+      await syncStateFromServer()
+    }, 30_000)
   }
 
   // Helper: Check if option is selected
@@ -370,7 +481,9 @@ const loadSavedSession = (sessionId: string) => {
       session.value.timeRemaining = calculateTimeRemaining()
     }
     
+    loadPendingRetries(sessionId)
     startTimer()
+    startResyncInterval()
     return true
   }
   return false
@@ -381,18 +494,22 @@ const loadSavedSession = (sessionId: string) => {
       clearInterval(timerInterval.value)
       timerInterval.value = null
     }
-    
+    if (resyncInterval.value) {
+      clearInterval(resyncInterval.value)
+      resyncInterval.value = null
+    }
+
     session.value = null
     currentQuestionIndex.value = 0
     lastSavedAt.value = null
     examEndTime.value = null
     examDuration.value = 90 * 60
+    pendingRetries.value.clear()
   }
 
   const onUnmounted = () => {
-    if (timerInterval.value) {
-      clearInterval(timerInterval.value)
-    }
+    if (timerInterval.value) clearInterval(timerInterval.value)
+    if (resyncInterval.value) clearInterval(resyncInterval.value)
   }
 
   return {
@@ -402,6 +519,8 @@ const loadSavedSession = (sessionId: string) => {
     currentQuestion,
     formattedTime,
     totalAnswered,
+    hasPendingRetries,
+    pendingRetries,
     initializeExam,
     selectAnswer,
     isOptionSelected,
@@ -413,6 +532,9 @@ const loadSavedSession = (sessionId: string) => {
     resetExam,
     loadSavedSession,
     onUnmounted,
-    autoSave
+    autoSave,
+    flushPendingRetries,
+    syncStateFromServer,
+    clearPendingRetries
   }
 })

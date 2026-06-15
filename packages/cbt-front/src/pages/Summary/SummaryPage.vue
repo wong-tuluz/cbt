@@ -384,10 +384,10 @@ const progressColor = computed(() => {
 
 onMounted(async () => {
   const sessionId = route.params.id as string
-  
+
   if (!examStore.session) {
     const hasSession = examStore.loadSavedSession(sessionId)
-    
+
     if (!hasSession) {
       toast({
         title: 'Data ujian tidak ditemukan',
@@ -398,6 +398,19 @@ onMounted(async () => {
       return
     }
   }
+
+  // Flush any failed submissions then pull server state so counts are accurate
+  await examStore.flushPendingRetries()
+  await examStore.syncStateFromServer()
+
+  if (examStore.hasPendingRetries) {
+    toast({
+      title: 'Beberapa jawaban belum tersimpan',
+      description: `${examStore.pendingRetries.size} jawaban gagal dikirim ke server. Periksa koneksi internet Anda.`,
+      variant: 'destructive'
+    })
+  }
+
   loading.value = false
 
   const autoSubmitTimer = setInterval(() => {
@@ -442,12 +455,16 @@ const submitSession = async () => {
 
 const goResult = async () => {
   try {
-    // 1. Tunggu submitSession() selesai
+    // 1. Last-chance flush before finishing
+    await examStore.flushPendingRetries()
+
+    // 2. Tunggu submitSession() selesai
     await submitSession()
+    examStore.clearPendingRetries(route.params.id as string)
     examStore.resetExam()
     console.log('✅ Submit session success, now cleaning up...')
-    
-    // 2. Baru cleanup data
+
+    // 3. Baru cleanup data
     localStorage.removeItem("soal")
     sessionStorage.removeItem("examContext")
     localStorage.removeItem("exam_state_"+route.params.id)

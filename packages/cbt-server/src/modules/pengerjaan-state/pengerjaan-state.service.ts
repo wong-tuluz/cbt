@@ -264,35 +264,49 @@ export class PengerjaanStateService {
         if (session.status != 'in_progress')
             throw new BadRequestException('Session stale');
 
-        await db.transaction(async tx => {
-            await tx.delete(workSessionAnswerTable).where(and(
-                eq(workSessionAnswerTable.workSessionId, data.workSessionId),
-                eq(workSessionAnswerTable.soalId, data.soalId)
-            ));
+        const MAX_DEADLOCK_RETRIES = 3;
+        let attempt = 0;
+        while (true) {
+            try {
+                await db.transaction(async tx => {
+                    await tx.delete(workSessionAnswerTable).where(and(
+                        eq(workSessionAnswerTable.workSessionId, data.workSessionId),
+                        eq(workSessionAnswerTable.soalId, data.soalId)
+                    ));
 
-            await tx.delete(workSessionMarkerTable).where(and(
-                eq(workSessionMarkerTable.workSessionId, data.workSessionId),
-                eq(workSessionMarkerTable.soalId, data.soalId)
-            ));
+                    await tx.delete(workSessionMarkerTable).where(and(
+                        eq(workSessionMarkerTable.workSessionId, data.workSessionId),
+                        eq(workSessionMarkerTable.soalId, data.soalId)
+                    ));
 
-            if (data.jawaban.length > 0) {
-                await tx.insert(workSessionAnswerTable).values(
-                    data.jawaban.map(x => ({
+                    if (data.jawaban.length > 0) {
+                        await tx.insert(workSessionAnswerTable).values(
+                            data.jawaban.map(x => ({
+                                id: crypto.randomUUID(),
+                                workSessionId: data.workSessionId,
+                                soalId: data.soalId,
+                                jawabanSoalId: x.jawabanSoalId,
+                                value: x.value,
+                            }))
+                        );
+                    }
+
+                    await tx.insert(workSessionMarkerTable).values({
                         id: crypto.randomUUID(),
                         workSessionId: data.workSessionId,
                         soalId: data.soalId,
-                        jawabanSoalId: x.jawabanSoalId,
-                        value: x.value,
-                    }))
-                );
+                        isMarked: data.marked ?? false,
+                    });
+                });
+                break; // success
+            } catch (err: any) {
+                if (err?.code === 'ER_LOCK_DEADLOCK' && attempt < MAX_DEADLOCK_RETRIES) {
+                    attempt++;
+                    await new Promise(r => setTimeout(r, 50 * attempt));
+                    continue;
+                }
+                throw err;
             }
-
-            await tx.insert(workSessionMarkerTable).values({
-                id: crypto.randomUUID(),
-                workSessionId: data.workSessionId,
-                soalId: data.soalId,
-                isMarked: data.marked ?? false,
-            });
-        });
+        }
     }
 }

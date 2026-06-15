@@ -33,11 +33,22 @@
 
           <!-- Status & Timer -->
           <div class="flex items-center gap-4">
+            <!-- Pending Retry Warning -->
+            <div
+              v-if="examStore.hasPendingRetries"
+              class="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-destructive/10 text-destructive"
+              title="Beberapa jawaban gagal tersimpan ke server dan sedang dicoba ulang"
+            >
+              <WifiOffIcon class="w-3 h-3" />
+              <span class="hidden sm:inline">{{ examStore.pendingRetries.size }} jawaban pending</span>
+            </div>
+
             <!-- Auto Save Status -->
-            <div 
+            <div
+              v-else
               class="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-colors"
-              :class="examStore.session?.isAutoSaving 
-                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+              :class="examStore.session?.isAutoSaving
+                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                 : 'bg-success/10 text-success'"
               :title="examStore.session?.isAutoSaving ? 'Menyimpan...' : 'Semua jawaban tersimpan'"
             >
@@ -230,10 +241,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  FileTextIcon, 
-  UserIcon, 
-  CloudIcon, 
+import {
+  FileTextIcon,
+  UserIcon,
+  CloudIcon,
   ClockIcon,
   CircleIcon,
   CircleDotIcon,
@@ -242,7 +253,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   SendIcon,
-  BookmarkIcon
+  BookmarkIcon,
+  WifiOffIcon
 } from 'lucide-vue-next'
 import { useExamStore } from '@/stores/examStore'
 import { Button } from '@/components/ui/button'
