@@ -187,6 +187,19 @@
                 
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap items-center justify-center gap-2">
+                    <!-- Lihat Jawaban (hanya untuk yang sudah selesai) -->
+                    <Button
+                      v-if="session.status === 'finished'"
+                      @click="router.push(`/management-event/${jadwalId}/${session.id}`)"
+                      variant="outline"
+                      size="sm"
+                      class="gap-1.5"
+                      title="Lihat Jawaban Siswa"
+                    >
+                      <EyeIcon class="w-3 h-3" />
+                      Lihat Jawaban
+                    </Button>
+
                     <!-- Aksi Utama - Kumpulkan (hanya untuk yang sedang mengerjakan) -->
                     <Button
                       v-if="session.status === 'in_progress'"
@@ -329,19 +342,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { 
-  UsersIcon, 
-  CheckCircleIcon, 
-  ClockIcon, 
-  AlertCircleIcon, 
-  SearchIcon, 
-  RefreshCwIcon, 
-  RotateCcwIcon, 
+import {
+  UsersIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  AlertCircleIcon,
+  SearchIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
   RotateCwIcon,
   SendIcon,
-  TrashIcon, 
-  XCircleIcon, 
-  ArrowLeftIcon
+  TrashIcon,
+  XCircleIcon,
+  ArrowLeftIcon,
+  EyeIcon
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
