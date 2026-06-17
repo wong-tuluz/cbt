@@ -260,14 +260,15 @@ export const useExamStore = defineStore('exam', () => {
     })
   }
 
-  // Drain the retry queue serially, rebuilding payloads from current local state each time
-  const flushPendingRetries = async () => {
+  // Drain the retry queue serially, rebuilding payloads from current local state each time.
+  // Pass force=true to retry even questions that have hit MAX_ATTEMPTS (used before endSession).
+  const flushPendingRetries = async (force = false) => {
     if (!session.value || pendingRetries.value.size === 0) return
 
     const sessionId = session.value.id
 
     for (const [soalId, attempts] of Array.from(pendingRetries.value.entries())) {
-      if (attempts >= MAX_ATTEMPTS) continue
+      if (!force && attempts >= MAX_ATTEMPTS) continue
 
       const payload = buildPayloadForQuestion(soalId)
       if (!payload) {

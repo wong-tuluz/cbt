@@ -226,10 +226,11 @@
           <ArrowLeftIcon class="w-4 h-4" />
           Kembali ke Soal
         </Button>
-        
-        <Dialog>
+
+        <!-- Normal confirm dialog -->
+        <Dialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
           <DialogTrigger as-child>
-            <Button class="gap-2 bg-primary hover:bg-primary/80">
+            <Button @click="showConfirmDialog = true" class="gap-2 bg-primary hover:bg-primary/80">
               <Send class="w-4 h-4" />
               Submit & Akhiri Ujian
             </Button>
@@ -242,14 +243,33 @@
               </DialogDescription>
             </DialogHeader>
             <DialogFooter class="gap-2">
-              <DialogClose as-child>
-                <Button variant="outline">Batal</Button>
-              </DialogClose>
-              <DialogClose as-child>
-                <Button @click="goResult" class="bg-primary hover:bg-primary/30">
-                  Ya, Kumpulkan
-                </Button>
-              </DialogClose>
+              <Button variant="outline" @click="showConfirmDialog = false">Batal</Button>
+              <Button @click="goResult" :disabled="submitting" class="bg-primary hover:bg-primary/80">
+                <span v-if="submitting" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
+                Ya, Kumpulkan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <!-- Pending-retries warning dialog -->
+        <Dialog :open="showRetryWarning" @update:open="showRetryWarning = $event">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle class="text-destructive">Jawaban Belum Terkirim</DialogTitle>
+              <DialogDescription>
+                <strong>{{ pendingCount }} jawaban</strong> gagal dikirim ke server karena masalah koneksi.
+                Jika Anda tetap mengumpulkan sekarang, jawaban tersebut mungkin tidak tercatat.
+                <br /><br />
+                Kembali ke soal dan coba lagi setelah koneksi stabil, atau kumpulkan sekarang dengan risiko jawaban hilang.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter class="gap-2">
+              <Button variant="outline" @click="showRetryWarning = false">Kembali & Coba Lagi</Button>
+              <Button @click="finishAnyway" :disabled="submitting" variant="destructive">
+                <span v-if="submitting" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
+                Kumpulkan Sekarang
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -278,6 +298,11 @@ const router = useRouter()
 const loading = ref(true)
 const examStore = useExamStore()
 const { toast } = useToast()
+
+const showConfirmDialog = ref(false)
+const showRetryWarning = ref(false)
+const submitting = ref(false)
+const pendingCount = ref(0)
 
 const raw = sessionStorage.getItem('examContext')
 const examContext = raw ? JSON.parse(raw) : null
@@ -453,36 +478,39 @@ const submitSession = async () => {
   }
 }
 
+const cleanup = () => {
+  localStorage.removeItem("soal")
+  sessionStorage.removeItem("examContext")
+  localStorage.removeItem("exam_state_" + route.params.id)
+  examStore.clearPendingRetries(route.params.id as string)
+  examStore.resetExam()
+}
+
 const goResult = async () => {
-  try {
-    // 1. Last-chance flush before finishing
-    await examStore.flushPendingRetries()
+  submitting.value = true
+  // Force-flush: retry even questions that hit MAX_ATTEMPTS — last chance before session ends
+  await examStore.flushPendingRetries(true)
 
-    // 2. Tunggu submitSession() selesai
-    await submitSession()
-    examStore.clearPendingRetries(route.params.id as string)
-    examStore.resetExam()
-    console.log('✅ Submit session success, now cleaning up...')
-
-    // 3. Baru cleanup data
-    localStorage.removeItem("soal")
-    sessionStorage.removeItem("examContext")
-    localStorage.removeItem("exam_state_"+route.params.id)
-    
-    // 3. Redirect ke dashboard
-    router.push(`/dashboard`)
-    
-  } catch (error) {
-    console.error('❌ Submit session failed:', error)
-    
-    // Optional: Tetap cleanup meskipun submit gagal
-    localStorage.removeItem("soal")
-    sessionStorage.removeItem("examContext")
-    localStorage.removeItem("exam_state_"+route.params.id)
-    
-    // Redirect tetap jalan
-    router.push(`/dashboard`)
+  if (examStore.hasPendingRetries) {
+    pendingCount.value = examStore.pendingRetries.size
+    submitting.value = false
+    showConfirmDialog.value = false
+    showRetryWarning.value = true
+    return
   }
+
+  await submitSession()
+  cleanup()
+  submitting.value = false
+  router.push(`/dashboard`)
+}
+
+const finishAnyway = async () => {
+  submitting.value = true
+  await submitSession()
+  cleanup()
+  submitting.value = false
+  router.push(`/dashboard`)
 }
 </script>
 
