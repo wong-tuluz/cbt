@@ -82,14 +82,30 @@ export class PengerjaanService {
     }
 
     async reset(sessionId: string) {
+        const now = new Date();
         await db.update(workSessionTable)
-            .set({ status: 'in_progress', strike: 0, finishedAt: null, updatedAt: new Date() })
+            .set({ status: 'in_progress', strike: 0, finishedAt: null, startedAt: now, updatedAt: now })
             .where(eq(workSessionTable.id, sessionId));
     }
 
     async resetAllByJadwal(jadwalId: string) {
+        const now = new Date();
         await db.update(workSessionTable)
-            .set({ status: 'in_progress', strike: 0, finishedAt: null, updatedAt: new Date() })
+            .set({ status: 'in_progress', strike: 0, finishedAt: null, startedAt: now, updatedAt: now })
+            .where(eq(workSessionTable.jadwalId, jadwalId));
+    }
+
+    async resetTime(sessionId: string) {
+        const now = new Date();
+        await db.update(workSessionTable)
+            .set({ startedAt: now, updatedAt: now })
+            .where(eq(workSessionTable.id, sessionId));
+    }
+
+    async resetTimeByJadwal(jadwalId: string) {
+        const now = new Date();
+        await db.update(workSessionTable)
+            .set({ startedAt: now, updatedAt: now })
             .where(eq(workSessionTable.jadwalId, jadwalId));
     }
 

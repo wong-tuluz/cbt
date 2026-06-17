@@ -8,6 +8,10 @@
           <p class="text-sm text-muted-foreground mt-1">Monitor dan kelola aktivitas ujian siswa</p>
         </div>
         <div class="flex items-center gap-2">
+          <Button @click="showResetAllTimeDialog = true" variant="outline" size="sm" class="gap-2 text-destructive border-destructive/40 hover:bg-destructive/10">
+            <ClockIcon class="w-4 h-4" />
+            Reset Semua Waktu
+          </Button>
           <Button @click="showResetAllStatusDialog = true" variant="outline" size="sm" class="gap-2 text-destructive border-destructive/40 hover:bg-destructive/10">
             <RotateCcwIcon class="w-4 h-4" />
             Reset Semua Status
@@ -219,6 +223,19 @@
                       Kumpulkan
                     </Button>
 
+                    <!-- Reset Waktu (untuk yang sedang mengerjakan) -->
+                    <Button
+                      v-if="session.status === 'in_progress'"
+                      @click="handleResetTime(session)"
+                      variant="outline"
+                      size="sm"
+                      class="gap-1.5"
+                      title="Reset Waktu (Mulai ulang hitungan waktu)"
+                    >
+                      <ClockIcon class="w-3 h-3" />
+                      Reset Waktu
+                    </Button>
+
                     <!-- Reset Status (dari selesai ke mengerjakan) -->
                     <Button
                       v-if="session.status === 'finished'"
@@ -324,6 +341,44 @@
       </DialogContent>
     </Dialog>
 
+    <Dialog v-model:open="showResetTimeDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset Waktu Siswa?</DialogTitle>
+          <DialogDescription>
+            Waktu ujian <strong>{{ selectedSession?.siswa.nama }}</strong> akan dimulai ulang dari sekarang.
+            Siswa mendapatkan durasi penuh kembali.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showResetTimeDialog = false">Batal</Button>
+          <Button @click="confirmResetTime" :disabled="resetting">
+            <span v-if="resetting">Memproses...</span>
+            <span v-else>Ya, Reset Waktu</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="showResetAllTimeDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset Semua Waktu?</DialogTitle>
+          <DialogDescription>
+            Waktu ujian <strong>seluruh peserta</strong> akan dimulai ulang dari sekarang.
+            Semua peserta mendapatkan durasi penuh kembali.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showResetAllTimeDialog = false">Batal</Button>
+          <Button variant="destructive" @click="confirmResetAllTime" :disabled="resetting">
+            <span v-if="resetting">Memproses...</span>
+            <span v-else>Ya, Reset Semua Waktu</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Dialog v-model:open="showResetScoreDialog">
       <DialogContent>
         <DialogHeader>
@@ -391,7 +446,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getProktorSessions, resetStatus, resetAllStatus } from '@/services/proktorService'
+import { getProktorSessions, resetStatus, resetAllStatus, resetTime, resetAllTime } from '@/services/proktorService'
 import type { IProktorSession } from '@/types/IProktorSession'
 import { useToast } from '@/hooks/use-toast'
 import { endSession } from '@/services/workSessionService'
@@ -408,6 +463,8 @@ const filterStatus = ref('all')
 const showEndSessionDialog = ref(false)
 const showResetStatusDialog = ref(false)
 const showResetAllStatusDialog = ref(false)
+const showResetTimeDialog = ref(false)
+const showResetAllTimeDialog = ref(false)
 const showResetScoreDialog = ref(false)
 const showResetAnswersDialog = ref(false)
 const selectedSession = ref<IProktorSession | null>(null)
@@ -637,6 +694,58 @@ const confirmResetAnswers = async () => {
     toast({
       title: 'Gagal reset jawaban',
       description: 'Terjadi kesalahan saat mereset jawaban',
+      variant: 'destructive'
+    })
+  } finally {
+    resetting.value = false
+  }
+}
+
+const handleResetTime = (session: IProktorSession) => {
+  selectedSession.value = session
+  showResetTimeDialog.value = true
+}
+
+const confirmResetTime = async () => {
+  if (!selectedSession.value) return
+  resetting.value = true
+  try {
+    await resetTime(selectedSession.value.id)
+    dismissAll()
+    toast({
+      title: 'Waktu direset',
+      description: `Waktu ujian ${selectedSession.value.siswa.nama} berhasil dimulai ulang`,
+      variant: 'default'
+    })
+    showResetTimeDialog.value = false
+    await loadData()
+  } catch (error) {
+    toast({
+      title: 'Gagal reset waktu',
+      description: 'Terjadi kesalahan saat mereset waktu',
+      variant: 'destructive'
+    })
+  } finally {
+    resetting.value = false
+  }
+}
+
+const confirmResetAllTime = async () => {
+  resetting.value = true
+  try {
+    await resetAllTime(jadwalId.value)
+    dismissAll()
+    toast({
+      title: 'Semua waktu direset',
+      description: 'Waktu ujian seluruh peserta berhasil dimulai ulang',
+      variant: 'default'
+    })
+    showResetAllTimeDialog.value = false
+    await loadData()
+  } catch (error) {
+    toast({
+      title: 'Gagal reset semua waktu',
+      description: 'Terjadi kesalahan saat mereset waktu',
       variant: 'destructive'
     })
   } finally {

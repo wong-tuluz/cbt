@@ -288,8 +288,13 @@ export const useExamStore = defineStore('exam', () => {
     savePendingRetries(sessionId)
   }
 
+  // Called by the exam page to react when the server marks the session as finished externally
+  // (proctor collected, auto-submit, etc.) while answers may still be pending locally.
+  let onServerFinished: ((hasPending: boolean) => void) | null = null
+  const setOnServerFinished = (cb: (hasPending: boolean) => void) => { onServerFinished = cb }
+
   // Sync local state from server — reconcile isAnswered / isSelected.
-  // Also stops the resync interval if the server reports the session as finished.
+  // Keeps the interval alive on 'finished' so we recover if the proctor resets back to in_progress.
   const syncStateFromServer = async () => {
     if (!session.value) return
 
@@ -297,12 +302,9 @@ export const useExamStore = defineStore('exam', () => {
       const res = await getSessionState(session.value.id)
       if (!res || !Array.isArray(res.questions)) return
 
-      // If the proctor or auto-submit has finished this session, stop polling
       if (res.status === 'finished') {
-        if (resyncInterval.value) {
-          clearInterval(resyncInterval.value)
-          resyncInterval.value = null
-        }
+        // Notify the exam page so it can warn the student
+        onServerFinished?.(pendingRetries.value.size > 0)
         return
       }
 
@@ -312,7 +314,7 @@ export const useExamStore = defineStore('exam', () => {
         const serverQ = serverMap.get(localQ.soalId)
         if (!serverQ) continue
 
-        // Server is authoritative for gaps: if server has an answer but local doesn't, pull it in
+        // Server is authoritative for gaps: pull in answers that failed to submit locally
         if (serverQ.isAnswered && !localQ.isAnswered) {
           localQ.isAnswered = true
           localQ.isMarked = serverQ.isMarked
@@ -546,6 +548,7 @@ const loadSavedSession = (sessionId: string) => {
     submitAnswerToAPI,
     flushPendingRetries,
     syncStateFromServer,
-    clearPendingRetries
+    clearPendingRetries,
+    setOnServerFinished
   }
 })
