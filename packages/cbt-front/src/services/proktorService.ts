@@ -41,6 +41,16 @@ export async function resetTime(sessionId: string) {
   }
 }
 
+export async function finishAllSession(jadwalId: string) {
+  try {
+    const response = await api.post<unknown>(`/work-session/finish-all?jadwalId=${jadwalId}`)
+    return response
+  } catch (error) {
+    console.error('Error finishing all sessions:', error)
+    throw error
+  }
+}
+
 export async function resetAllTime(jadwalId: string) {
   try {
     const response = await api.post<unknown>(`/work-session/reset-time-all?jadwalId=${jadwalId}`)

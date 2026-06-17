@@ -5,6 +5,7 @@ export interface IProktorSession {
     finishedAt: string,
     questionCount: number,
     questionAnswered: number,
+    strike: number,
     jadwal: {
         id: string,
         title: string,
@@ -15,6 +16,13 @@ export interface IProktorSession {
         timeLimit: number,
         attempts: number,
         token: string
+        agenda: {
+            id: string,
+            title: string,
+            startTime: string,
+            endTime: string,
+            description: string
+        }
     },
     siswa: {
         id: string,
@@ -25,6 +33,7 @@ export interface IProktorSession {
         username: string,
         password: string
     }
+}
         
 }
 

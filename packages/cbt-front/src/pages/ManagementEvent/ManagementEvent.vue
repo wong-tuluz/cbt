@@ -128,7 +128,13 @@ const filteredEvents = computed(() => {
 })
 
 const handleMonitorEvent = (event: Event) => {
-  router.push(`/management-event/${event.id}`)
+  router.push({
+    path: `/management-event/${event.id}`,
+    query: {
+      jadwal: event.title,
+      agenda: event.agendaTitle
+    }
+  })
 }
 
 // Fetch data

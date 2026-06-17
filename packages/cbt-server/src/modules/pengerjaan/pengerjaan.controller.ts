@@ -69,6 +69,18 @@ export class PengerjaanController {
         return await this.pengerjaanService.finish(sessionId);
     }
 
+    @Post('finish-all')
+    async finishAll(
+        @Session() session: UserSession,
+        @Query('jadwalId') jadwalId: string
+    ) {
+        if (session.user.role != 'admin') {
+            throw new UnauthorizedException();
+        }
+
+        return await this.pengerjaanService.finishAllByJadwal(jadwalId);
+    }
+
     @Post(':id/reset')
     async reset(
         @Session() session: UserSession,

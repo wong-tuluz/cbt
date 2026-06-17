@@ -81,6 +81,31 @@ export class PengerjaanService {
             .where(eq(workSessionTable.id, sessionId));
     }
 
+    async finishAllByJadwal(jadwalId: string) {
+        const sessions = await db.select({ id: workSessionTable.id })
+            .from(workSessionTable)
+            .where(
+                and(
+                    eq(workSessionTable.jadwalId, jadwalId),
+                    eq(workSessionTable.status, 'in_progress')
+                )
+            );
+
+        const ids = sessions.map(s => s.id);
+        if (ids.length > 0) {
+            await db.update(workSessionTable)
+                .set({ status: 'finished', finishedAt: new Date(), updatedAt: new Date() })
+                .where(
+                    and(
+                        eq(workSessionTable.jadwalId, jadwalId),
+                        eq(workSessionTable.status, 'in_progress')
+                    )
+                );
+        }
+
+        return { success: true, data: { finishedIds: ids }, message: 'Semua ujian berhasil dikumpulkan' };
+    }
+
     async reset(sessionId: string) {
         const now = new Date();
         await db.update(workSessionTable)

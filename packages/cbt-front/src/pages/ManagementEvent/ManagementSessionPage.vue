@@ -4,10 +4,14 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-card-foreground">Management Ujian</h1>
-          <p class="text-sm text-muted-foreground mt-1">Monitor dan kelola aktivitas ujian siswa</p>
+          <h1 class="text-2xl font-bold text-card-foreground">{{ eventName }}</h1>
+          <p class="text-sm text-muted-foreground mt-1">{{ jadwalName }}</p>
         </div>
         <div class="flex items-center gap-2">
+          <Button @click="showFinishAllDialog = true" variant="outline" size="sm" class="gap-2">
+            <SendIcon class="w-4 h-4" />
+            Kumpulkan Semua
+          </Button>
           <Button @click="showResetAllTimeDialog = true" variant="outline" size="sm" class="gap-2 text-destructive border-destructive/40 hover:bg-destructive/10">
             <ClockIcon class="w-4 h-4" />
             Reset Semua Waktu
@@ -117,6 +121,7 @@
                 <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Kelas</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Status</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Progress</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Kecurangan</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Waktu</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-card-foreground">Nilai</th>
                 <th class="px-4 py-3 text-center text-sm font-semibold text-card-foreground">Aksi</th>
@@ -124,7 +129,7 @@
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="8" class="px-4 py-8 text-center text-muted-foreground">
+                <td colspan="9" class="px-4 py-8 text-center text-muted-foreground">
                   <div class="flex items-center justify-center gap-2">
                     <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                     <span>Memuat data...</span>
@@ -133,7 +138,7 @@
               </tr>
               
               <tr v-else-if="filteredSessions.length === 0">
-                <td colspan="8" class="px-4 py-8 text-center text-muted-foreground">
+                <td colspan="9" class="px-4 py-8 text-center text-muted-foreground">
                   Tidak ada data siswa
                 </td>
               </tr>
@@ -172,6 +177,13 @@
                       </span>
                     </div>
                   </div>
+                </td>
+                
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                    :class="getStrikeClass(session.strike)">
+                    {{ session.strike }}x
+                  </span>
                 </td>
                 
                 <td class="px-4 py-3">
@@ -322,6 +334,25 @@
       </DialogContent>
     </Dialog>
 
+    <Dialog v-model:open="showFinishAllDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Kumpulkan Semua Ujian?</DialogTitle>
+          <DialogDescription>
+            Semua ujian yang sedang dikerjakan akan dikumpulkan secara paksa.
+            Status akan berubah menjadi "Selesai". Tindakan ini tidak dapat dibatalkan.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showFinishAllDialog = false">Batal</Button>
+          <Button @click="confirmFinishAll" :disabled="resetting">
+            <span v-if="resetting">Memproses...</span>
+            <span v-else>Ya, Kumpulkan Semua</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Dialog v-model:open="showResetAllStatusDialog">
       <DialogContent>
         <DialogHeader>
@@ -446,7 +477,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getProktorSessions, resetStatus, resetAllStatus, resetTime, resetAllTime } from '@/services/proktorService'
+import { getProktorSessions, resetStatus, resetAllStatus, resetTime, resetAllTime, finishAllSession } from '@/services/proktorService'
 import type { IProktorSession } from '@/types/IProktorSession'
 import { useToast } from '@/hooks/use-toast'
 import { endSession } from '@/services/workSessionService'
@@ -462,6 +493,7 @@ const searchQuery = ref('')
 const filterStatus = ref('all')
 const showEndSessionDialog = ref(false)
 const showResetStatusDialog = ref(false)
+const showFinishAllDialog = ref(false)
 const showResetAllStatusDialog = ref(false)
 const showResetTimeDialog = ref(false)
 const showResetAllTimeDialog = ref(false)
@@ -471,6 +503,15 @@ const selectedSession = ref<IProktorSession | null>(null)
 
 // GET JADWAL ID DARI URL PARAMS
 const jadwalId = computed(() => route.params.id as string)
+
+// Event & Jadwal name from route query (passed from ManagementEvent)
+const eventName = computed(() => {
+  return (route.query.agenda as string) || 'Management Ujian'
+})
+
+const jadwalName = computed(() => {
+  return (route.query.jadwal as string) || 'Monitor dan kelola aktivitas ujian siswa'
+})
 
 // Stats - menggunakan 'finished' sesuai API
 const stats = computed(() => {
@@ -567,6 +608,12 @@ const getStatusText = (status: string) => {
     default: // 'not_started'
       return 'Belum Mulai'
   }
+}
+
+const getStrikeClass = (strike: number) => {
+  if (strike >= 3) return 'bg-destructive/10 text-destructive'
+  if (strike >= 1) return 'bg-warning/10 text-warning'
+  return 'bg-muted text-muted-foreground'
 }
 
 const formatTime = (time: string | null) => {
@@ -746,6 +793,29 @@ const confirmResetAllTime = async () => {
     toast({
       title: 'Gagal reset semua waktu',
       description: 'Terjadi kesalahan saat mereset waktu',
+      variant: 'destructive'
+    })
+  } finally {
+    resetting.value = false
+  }
+}
+
+const confirmFinishAll = async () => {
+  resetting.value = true
+  try {
+    await finishAllSession(jadwalId.value)
+    dismissAll()
+    toast({
+      title: 'Semua ujian dikumpulkan',
+      description: 'Seluruh ujian yang sedang dikerjakan berhasil dikumpulkan',
+      variant: 'default'
+    })
+    showFinishAllDialog.value = false
+    await loadData()
+  } catch (error) {
+    toast({
+      title: 'Gagal mengumpulkan ujian',
+      description: 'Terjadi kesalahan saat mengumpulkan semua ujian',
       variant: 'destructive'
     })
   } finally {
