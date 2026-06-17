@@ -93,6 +93,30 @@ export class PengerjaanController {
         return await this.pengerjaanService.resetAllByJadwal(jadwalId);
     }
 
+    @Post(':id/reset-time')
+    async resetTime(
+        @Session() session: UserSession,
+        @Param('id') sessionId: string
+    ) {
+        if (session.user.role != 'admin') {
+            throw new UnauthorizedException();
+        }
+
+        return await this.pengerjaanService.resetTime(sessionId);
+    }
+
+    @Post('reset-time-all')
+    async resetTimeAll(
+        @Session() session: UserSession,
+        @Query('jadwalId') jadwalId: string
+    ) {
+        if (session.user.role != 'admin') {
+            throw new UnauthorizedException();
+        }
+
+        return await this.pengerjaanService.resetTimeByJadwal(jadwalId);
+    }
+
     @Post(':id/warn')
     async warn(
         @Param('id') sessionId: string

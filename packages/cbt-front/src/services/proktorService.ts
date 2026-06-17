@@ -30,3 +30,23 @@ export async function resetAllStatus(jadwalId: string) {
     throw error
   }
 }
+
+export async function resetTime(sessionId: string) {
+  try {
+    const response = await api.post<unknown>(`/work-session/${sessionId}/reset-time`)
+    return response
+  } catch (error) {
+    console.error('Error resetting session time:', error)
+    throw error
+  }
+}
+
+export async function resetAllTime(jadwalId: string) {
+  try {
+    const response = await api.post<unknown>(`/work-session/reset-time-all?jadwalId=${jadwalId}`)
+    return response
+  } catch (error) {
+    console.error('Error resetting all session times:', error)
+    throw error
+  }
+}

@@ -294,21 +294,24 @@ export const useExamStore = defineStore('exam', () => {
 
     try {
       const res = await getSessionState(session.value.id)
-      if (!res.success || !Array.isArray(res.data)) return
+      if (!res || !Array.isArray(res.questions)) return
 
-      const serverMap = new Map(res.data.map((q: { soalId: string; isAnswered: boolean; isMarked: boolean; options: Array<{ jawabanSoalId: string; isSelected: boolean }> }) => [q.soalId, q]))
+      // If finished, skip this tick but keep the interval alive so we recover
+      // automatically if the proctor resets the session back to in_progress
+      if (res.status === 'finished') return
+
+      const serverMap = new Map(res.questions.map(q => [q.soalId, q]))
 
       for (const localQ of session.value.questions) {
         const serverQ = serverMap.get(localQ.soalId)
         if (!serverQ) continue
 
-        // Only override local selection if server has an answer and local doesn't
-        // (local is authoritative for in-progress changes; server fills gaps from failed submits)
+        // Server is authoritative for gaps: pull in answers that failed to submit locally
         if (serverQ.isAnswered && !localQ.isAnswered) {
           localQ.isAnswered = true
           localQ.isMarked = serverQ.isMarked
           for (const localOpt of localQ.options) {
-            const serverOpt = serverQ.options.find((o: { jawabanSoalId: string; isSelected: boolean }) => o.jawabanSoalId === localOpt.jawabanSoalId)
+            const serverOpt = serverQ.options.find(o => o.jawabanSoalId === localOpt.jawabanSoalId)
             if (serverOpt) localOpt.isSelected = serverOpt.isSelected
           }
         }
