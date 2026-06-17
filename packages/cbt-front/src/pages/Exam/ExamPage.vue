@@ -338,7 +338,7 @@ const handleSubmitExam = async () => {
 onMounted(async () => {
   await fetchData()
   const sessionId = route.params.id as string
-  
+
   if (!sessionId) {
     toast({
       title: 'Error',
@@ -349,9 +349,28 @@ onMounted(async () => {
     return
   }
 
+  // Register callback: fires when the periodic resync detects the server marked the session finished
+  examStore.setOnServerFinished((hasPending) => {
+    if (hasPending) {
+      toast({
+        title: 'Ujian dikumpulkan oleh proktor',
+        description: 'Beberapa jawaban belum sempat tersimpan ke server saat ujian dikumpulkan.',
+        variant: 'destructive',
+        duration: 0, // stay until dismissed
+      })
+    } else {
+      toast({
+        title: 'Ujian telah dikumpulkan',
+        description: 'Proktor telah mengumpulkan ujian Anda.',
+        variant: 'default',
+        duration: 0,
+      })
+    }
+  })
+
   // Coba load saved session dulu
   const hasSavedSession = examStore.loadSavedSession(sessionId)
-  
+
   if (!hasSavedSession) {
     try {
       // Initialize dari data API yang ada di localStorage
