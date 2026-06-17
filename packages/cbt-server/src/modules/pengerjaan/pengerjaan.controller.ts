@@ -81,6 +81,18 @@ export class PengerjaanController {
         return await this.pengerjaanService.reset(sessionId);
     }
 
+    @Post('reset-all')
+    async resetAll(
+        @Session() session: UserSession,
+        @Query('jadwalId') jadwalId: string
+    ) {
+        if (session.user.role != 'admin') {
+            throw new UnauthorizedException();
+        }
+
+        return await this.pengerjaanService.resetAllByJadwal(jadwalId);
+    }
+
     @Post(':id/warn')
     async warn(
         @Param('id') sessionId: string

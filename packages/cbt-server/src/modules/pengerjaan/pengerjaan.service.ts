@@ -87,6 +87,12 @@ export class PengerjaanService {
             .where(eq(workSessionTable.id, sessionId));
     }
 
+    async resetAllByJadwal(jadwalId: string) {
+        await db.update(workSessionTable)
+            .set({ status: 'in_progress', strike: 0, finishedAt: null, updatedAt: new Date() })
+            .where(eq(workSessionTable.jadwalId, jadwalId));
+    }
+
     async warn(sessionId: string) {
         const session = await this.findById(sessionId);
         const newStrike = session.strike + 1;
