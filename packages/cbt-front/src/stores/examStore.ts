@@ -288,27 +288,36 @@ export const useExamStore = defineStore('exam', () => {
     savePendingRetries(sessionId)
   }
 
-  // Sync local state from server — reconcile isAnswered / isSelected
+  // Sync local state from server — reconcile isAnswered / isSelected.
+  // Also stops the resync interval if the server reports the session as finished.
   const syncStateFromServer = async () => {
     if (!session.value) return
 
     try {
       const res = await getSessionState(session.value.id)
-      if (!res.success || !Array.isArray(res.data)) return
+      if (!res || !Array.isArray(res.questions)) return
 
-      const serverMap = new Map(res.data.map((q: { soalId: string; isAnswered: boolean; isMarked: boolean; options: Array<{ jawabanSoalId: string; isSelected: boolean }> }) => [q.soalId, q]))
+      // If the proctor or auto-submit has finished this session, stop polling
+      if (res.status === 'finished') {
+        if (resyncInterval.value) {
+          clearInterval(resyncInterval.value)
+          resyncInterval.value = null
+        }
+        return
+      }
+
+      const serverMap = new Map(res.questions.map(q => [q.soalId, q]))
 
       for (const localQ of session.value.questions) {
         const serverQ = serverMap.get(localQ.soalId)
         if (!serverQ) continue
 
-        // Only override local selection if server has an answer and local doesn't
-        // (local is authoritative for in-progress changes; server fills gaps from failed submits)
+        // Server is authoritative for gaps: if server has an answer but local doesn't, pull it in
         if (serverQ.isAnswered && !localQ.isAnswered) {
           localQ.isAnswered = true
           localQ.isMarked = serverQ.isMarked
           for (const localOpt of localQ.options) {
-            const serverOpt = serverQ.options.find((o: { jawabanSoalId: string; isSelected: boolean }) => o.jawabanSoalId === localOpt.jawabanSoalId)
+            const serverOpt = serverQ.options.find(o => o.jawabanSoalId === localOpt.jawabanSoalId)
             if (serverOpt) localOpt.isSelected = serverOpt.isSelected
           }
         }
