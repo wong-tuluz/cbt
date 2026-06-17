@@ -77,15 +77,20 @@ export async function submitExam(payload: SubmitExamPayload): Promise<{ success:
 
 // Get current session state from server (for resync)
 export async function getSessionState(sessionId: string) {
-  return api.get<{ success: boolean; data: Array<{
-    index: number
-    soalId: string
-    type: string
-    prompt: string
-    isMarked: boolean
-    isAnswered: boolean
-    options: Array<{ jawabanSoalId: string; value: string; isSelected: boolean }>
-  }> }>(`/work-session/${sessionId}/state`)
+  return api.get<{
+    id: string
+    status: 'in_progress' | 'finished'
+    strike: number
+    questions: Array<{
+      index: number
+      soalId: string
+      type: string
+      prompt: string
+      isMarked: boolean
+      isAnswered: boolean
+      options: Array<{ jawabanSoalId: string; value: string; isSelected: boolean }>
+    }>
+  }>(`/work-session/${sessionId}/state`)
 }
 
 // Get exam results

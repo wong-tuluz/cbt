@@ -7,10 +7,16 @@
           <h1 class="text-2xl font-bold text-card-foreground">Management Ujian</h1>
           <p class="text-sm text-muted-foreground mt-1">Monitor dan kelola aktivitas ujian siswa</p>
         </div>
-        <Button @click="router.back()" variant="outline" size="sm" class="gap-2">
-          <ArrowLeftIcon class="w-4 h-4" />
-          Kembali
-        </Button>
+        <div class="flex items-center gap-2">
+          <Button @click="showResetAllStatusDialog = true" variant="outline" size="sm" class="gap-2 text-destructive border-destructive/40 hover:bg-destructive/10">
+            <RotateCcwIcon class="w-4 h-4" />
+            Reset Semua Status
+          </Button>
+          <Button @click="router.back()" variant="outline" size="sm" class="gap-2">
+            <ArrowLeftIcon class="w-4 h-4" />
+            Kembali
+          </Button>
+        </div>
       </div>
 
       <!-- Stats Cards -->
@@ -299,6 +305,25 @@
       </DialogContent>
     </Dialog>
 
+    <Dialog v-model:open="showResetAllStatusDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset Semua Status?</DialogTitle>
+          <DialogDescription>
+            Status ujian <strong>seluruh peserta</strong> yang sudah "Selesai" akan diubah kembali menjadi "Mengerjakan".
+            Semua peserta dapat melanjutkan ujian. Tindakan ini tidak dapat dibatalkan.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showResetAllStatusDialog = false">Batal</Button>
+          <Button variant="destructive" @click="confirmResetAllStatus" :disabled="resetting">
+            <span v-if="resetting">Memproses...</span>
+            <span v-else>Ya, Reset Semua</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Dialog v-model:open="showResetScoreDialog">
       <DialogContent>
         <DialogHeader>
@@ -366,7 +391,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getProktorSessions, resetStatus } from '@/services/proktorService'
+import { getProktorSessions, resetStatus, resetAllStatus } from '@/services/proktorService'
 import type { IProktorSession } from '@/types/IProktorSession'
 import { useToast } from '@/hooks/use-toast'
 import { endSession } from '@/services/workSessionService'
@@ -382,6 +407,7 @@ const searchQuery = ref('')
 const filterStatus = ref('all')
 const showEndSessionDialog = ref(false)
 const showResetStatusDialog = ref(false)
+const showResetAllStatusDialog = ref(false)
 const showResetScoreDialog = ref(false)
 const showResetAnswersDialog = ref(false)
 const selectedSession = ref<IProktorSession | null>(null)
@@ -611,6 +637,29 @@ const confirmResetAnswers = async () => {
     toast({
       title: 'Gagal reset jawaban',
       description: 'Terjadi kesalahan saat mereset jawaban',
+      variant: 'destructive'
+    })
+  } finally {
+    resetting.value = false
+  }
+}
+
+const confirmResetAllStatus = async () => {
+  resetting.value = true
+  try {
+    await resetAllStatus(jadwalId.value)
+    dismissAll()
+    toast({
+      title: 'Semua status direset',
+      description: 'Status seluruh peserta berhasil direset menjadi "Mengerjakan"',
+      variant: 'default'
+    })
+    showResetAllStatusDialog.value = false
+    await loadData()
+  } catch (error) {
+    toast({
+      title: 'Gagal reset semua status',
+      description: 'Terjadi kesalahan saat mereset status',
       variant: 'destructive'
     })
   } finally {

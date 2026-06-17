@@ -20,3 +20,13 @@ export async function resetStatus(sessionId : string) {
     throw error
   }
 }
+
+export async function resetAllStatus(jadwalId: string) {
+  try {
+    const response = await api.post<unknown>(`/work-session/reset-all?jadwalId=${jadwalId}`)
+    return response
+  } catch (error) {
+    console.error('Error resetting all sessions:', error)
+    throw error
+  }
+}
