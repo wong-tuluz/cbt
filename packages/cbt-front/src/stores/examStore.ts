@@ -533,6 +533,7 @@ const loadSavedSession = (sessionId: string) => {
     loadSavedSession,
     onUnmounted,
     autoSave,
+    submitAnswerToAPI,
     flushPendingRetries,
     syncStateFromServer,
     clearPendingRetries

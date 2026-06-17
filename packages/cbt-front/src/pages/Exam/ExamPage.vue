@@ -330,7 +330,7 @@ const getQuestionNavClasses = (question: any) => {
 }
 
 const handleSubmitExam = async () => {
-  // Gunakan sessionId dari route params
+  await examStore.submitAnswerToAPI()
   router.push(`/exam/${route.params.id}/summary`)
 }
 
