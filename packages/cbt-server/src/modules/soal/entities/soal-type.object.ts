@@ -1,3 +1,11 @@
+import {
+    InvalidSoalTypeError,
+    MissingOpsiError,
+    SingleCorrectOpsiRequiredError,
+    AtLeastOneCorrectOpsiRequiredError,
+    EssaiMustNotHaveOpsiError,
+} from '../errors/soal.errors';
+
 export enum SoalTypeValue {
     PILIHAN_GANDA = 'PILIHAN_GANDA',
     PILIHAN_GANDA_KOMPLEKS = 'PILIHAN_GANDA_KOMPLEKS',
@@ -18,7 +26,7 @@ export class SoalType {
         if (normalized === 'ESSAI' || normalized === 'ESSAY') {
             return new SoalType(SoalTypeValue.ESSAI);
         }
-        throw new Error(`Invalid SoalType: ${value}`);
+        throw new InvalidSoalTypeError(value);
     }
 
     public static pilihanGanda(): SoalType {
@@ -68,25 +76,25 @@ export class SoalType {
         switch (this.value) {
             case SoalTypeValue.PILIHAN_GANDA:
                 if (!opsi || opsi.length === 0) {
-                    throw new Error('PILIHAN_GANDA must have at least one option');
+                    throw new MissingOpsiError('PILIHAN_GANDA');
                 }
                 const correctCountPG = opsi.filter((o) => o.isCorrect).length;
                 if (correctCountPG !== 1) {
-                    throw new Error('PILIHAN_GANDA must have exactly one correct option');
+                    throw new SingleCorrectOpsiRequiredError();
                 }
                 break;
             case SoalTypeValue.PILIHAN_GANDA_KOMPLEKS:
                 if (!opsi || opsi.length === 0) {
-                    throw new Error('PILIHAN_GANDA_KOMPLEKS must have at least one option');
+                    throw new MissingOpsiError('PILIHAN_GANDA_KOMPLEKS');
                 }
                 const correctCountPGK = opsi.filter((o) => o.isCorrect).length;
                 if (correctCountPGK < 1) {
-                    throw new Error('PILIHAN_GANDA_KOMPLEKS must have at least one correct option');
+                    throw new AtLeastOneCorrectOpsiRequiredError();
                 }
                 break;
             case SoalTypeValue.ESSAI:
                 if (opsi && opsi.length > 0) {
-                    throw new Error('ESSAI must not have options (opsi)');
+                    throw new EssaiMustNotHaveOpsiError();
                 }
                 break;
         }

@@ -1,3 +1,5 @@
+import { EmptyValueOpsiError, NegativeOrderOpsiError } from '../errors/soal.errors';
+
 export interface OpsiProps {
     id: string;
     value: string;
@@ -10,10 +12,10 @@ export class Opsi {
 
     public static create(props: OpsiProps): Opsi {
         if (!props.value || props.value.trim() === '') {
-            throw new Error('Opsi value cannot be empty');
+            throw new EmptyValueOpsiError();
         }
         if (props.order < 0) {
-            throw new Error('Opsi order cannot be negative');
+            throw new NegativeOrderOpsiError();
         }
         return new Opsi(props);
     }
@@ -36,7 +38,7 @@ export class Opsi {
 
     public updateValue(value: string): void {
         if (!value || value.trim() === '') {
-            throw new Error('Opsi value cannot be empty');
+            throw new EmptyValueOpsiError();
         }
         this.props.value = value;
     }
@@ -47,7 +49,7 @@ export class Opsi {
 
     public updateOrder(order: number): void {
         if (order < 0) {
-            throw new Error('Opsi order cannot be negative');
+            throw new NegativeOrderOpsiError();
         }
         this.props.order = order;
     }

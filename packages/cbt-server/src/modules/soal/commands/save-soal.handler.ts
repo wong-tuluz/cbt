@@ -1,5 +1,4 @@
 import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
-import { BadRequestException } from '@nestjs/common';
 import { generateUuidV7 } from '../../../utils/uuid';
 import { SaveSoalCommand } from './save-soal.command';
 import { SoalRepository } from '../repository/soal.repository';
@@ -16,32 +15,27 @@ export class SaveSoalHandler implements ICommandHandler<SaveSoalCommand> {
     ) {}
 
     async execute(command: SaveSoalCommand): Promise<{ id: string }> {
-        let soalAggregate: Soal;
-        try {
-            const domainSoalType = DomainSoalType.fromString(command.type);
-            const opsiList = (command.jawaban ?? []).map((j) =>
-                Opsi.create({
-                    id: j.id ?? generateUuidV7('soal'),
-                    value: j.value,
-                    isCorrect: j.isCorrect,
-                    order: j.order,
-                }),
-            );
+        const domainSoalType = DomainSoalType.fromString(command.type);
+        const opsiList = (command.jawaban ?? []).map((j) =>
+            Opsi.create({
+                id: j.id ?? generateUuidV7('soal'),
+                value: j.value,
+                isCorrect: j.isCorrect,
+                order: j.order,
+            }),
+        );
 
-            soalAggregate = Soal.create({
-                id: command.id,
-                remoteId: command.remoteId,
-                materiSoalId: command.materiSoalId,
-                type: domainSoalType,
-                prompt: command.prompt,
-                order: command.order,
-                weightCorrect: command.weightCorrect,
-                weightWrong: command.weightWrong,
-                opsi: opsiList,
-            });
-        } catch (error: any) {
-            throw new BadRequestException(error.message);
-        }
+        const soalAggregate = Soal.create({
+            id: command.id,
+            remoteId: command.remoteId,
+            materiSoalId: command.materiSoalId,
+            type: domainSoalType,
+            prompt: command.prompt,
+            order: command.order,
+            weightCorrect: command.weightCorrect,
+            weightWrong: command.weightWrong,
+            opsi: opsiList,
+        });
 
         const soalId = soalAggregate.id;
 

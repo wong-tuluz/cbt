@@ -1,6 +1,11 @@
 import { Soal } from '../entities/soal.aggregate';
 import { SoalType } from '../entities/soal-type.object';
 import { Opsi } from '../entities/opsi.entity';
+import {
+    SingleCorrectOpsiRequiredError,
+    AtLeastOneCorrectOpsiRequiredError,
+    EssaiMustNotHaveOpsiError,
+} from '../errors/soal.errors';
 
 describe('Soal Aggregate Root', () => {
     it('should successfully create a PILIHAN_GANDA soal with exactly one correct option', () => {
@@ -44,7 +49,7 @@ describe('Soal Aggregate Root', () => {
                 weightWrong: 0,
                 opsi,
             });
-        }).toThrow('PILIHAN_GANDA must have exactly one correct option');
+        }).toThrow(SingleCorrectOpsiRequiredError);
     });
 
     it('should throw an error for PILIHAN_GANDA with no correct options', () => {
@@ -65,7 +70,7 @@ describe('Soal Aggregate Root', () => {
                 weightWrong: 0,
                 opsi,
             });
-        }).toThrow('PILIHAN_GANDA must have exactly one correct option');
+        }).toThrow(SingleCorrectOpsiRequiredError);
     });
 
     it('should successfully create a PILIHAN_GANDA_KOMPLEKS soal with at least one correct option', () => {
@@ -108,7 +113,7 @@ describe('Soal Aggregate Root', () => {
                 weightWrong: 0,
                 opsi,
             });
-        }).toThrow('PILIHAN_GANDA_KOMPLEKS must have at least one correct option');
+        }).toThrow(AtLeastOneCorrectOpsiRequiredError);
     });
 
     it('should successfully create an ESSAI soal with no options', () => {
@@ -147,6 +152,6 @@ describe('Soal Aggregate Root', () => {
                 weightWrong: 0,
                 opsi,
             });
-        }).toThrow('ESSAI must not have options (opsi)');
+        }).toThrow(EssaiMustNotHaveOpsiError);
     });
 });

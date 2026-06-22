@@ -2,6 +2,12 @@ import { AggregateRoot } from '@nestjs/cqrs';
 import { generateUuidV7 } from '../../../utils/uuid';
 import { SoalType } from './soal-type.object';
 import { Opsi, OpsiProps } from './opsi.entity';
+import {
+    MissingIdSoalError,
+    MissingMateriSoalIdError,
+    EmptyPromptSoalError,
+    NegativeOrderSoalError,
+} from '../errors/soal.errors';
 
 export interface SoalProps {
     id: string;
@@ -76,14 +82,14 @@ export class Soal extends AggregateRoot {
 
     public updatePrompt(prompt: string): void {
         if (!prompt || prompt.trim() === '') {
-            throw new Error('Prompt cannot be empty');
+            throw new EmptyPromptSoalError();
         }
         this.props.prompt = prompt;
     }
 
     public updateOrder(order: number): void {
         if (order < 0) {
-            throw new Error('Order cannot be negative');
+            throw new NegativeOrderSoalError();
         }
         this.props.order = order;
     }
@@ -106,16 +112,16 @@ export class Soal extends AggregateRoot {
 
     public validate(): void {
         if (!this.props.id) {
-            throw new Error('Id is required');
+            throw new MissingIdSoalError();
         }
         if (!this.props.materiSoalId) {
-            throw new Error('Materi Soal Id is required');
+            throw new MissingMateriSoalIdError();
         }
         if (!this.props.prompt || this.props.prompt.trim() === '') {
-            throw new Error('Prompt cannot be empty');
+            throw new EmptyPromptSoalError();
         }
         if (this.props.order < 0) {
-            throw new Error('Order cannot be negative');
+            throw new NegativeOrderSoalError();
         }
         this.props.type.validateOpsi(this.props.opsi);
     }
