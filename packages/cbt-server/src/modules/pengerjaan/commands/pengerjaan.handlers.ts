@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { 
     CreatePengerjaanCommand, 
     SubmitPengerjaanActionCommand, 
@@ -13,12 +13,21 @@ import { PengerjaanAggregate } from '../entities/pengerjaan.aggregate';
 import { AcaraService } from '../../acara/acara.service';
 import { BadRequestException } from '@nestjs/common';
 import { SessionExpiredError, SessionStaleError } from '../errors/pengerjaan.errors';
+import { 
+    PengerjaanFinishedEvent, 
+    PengerjaanResetEvent, 
+    PengerjaanTimeResetEvent, 
+    PengerjaanWarnedEvent, 
+    PengerjaanUnwarnedEvent, 
+    PengerjaanActionSubmittedEvent 
+} from '../events/pengerjaan.events';
 
 @CommandHandler(CreatePengerjaanCommand)
 export class CreatePengerjaanHandler implements ICommandHandler<CreatePengerjaanCommand> {
     constructor(
         private readonly repository: PengerjaanRepository,
-        private readonly acaraService: AcaraService
+        private readonly acaraService: AcaraService,
+        private readonly eventBus: EventBus
     ) {}
 
     async execute(command: CreatePengerjaanCommand): Promise<{ id: string }> {
@@ -46,7 +55,10 @@ export class CreatePengerjaanHandler implements ICommandHandler<CreatePengerjaan
 
 @CommandHandler(SubmitPengerjaanActionCommand)
 export class SubmitPengerjaanActionHandler implements ICommandHandler<SubmitPengerjaanActionCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: SubmitPengerjaanActionCommand): Promise<void> {
         try {
@@ -56,6 +68,9 @@ export class SubmitPengerjaanActionHandler implements ICommandHandler<SubmitPeng
             aggregate.markQuestion(command.soalId, command.marked ?? false);
             
             await this.repository.save(aggregate);
+
+            // Publish event
+            this.eventBus.publish(new PengerjaanActionSubmittedEvent(aggregate.id, aggregate.siswaId, command.soalId));
         } catch (err: any) {
             if (err instanceof SessionExpiredError) {
                 throw new BadRequestException('Session expired');
@@ -70,45 +85,66 @@ export class SubmitPengerjaanActionHandler implements ICommandHandler<SubmitPeng
 
 @CommandHandler(FinishPengerjaanCommand)
 export class FinishPengerjaanHandler implements ICommandHandler<FinishPengerjaanCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: FinishPengerjaanCommand): Promise<void> {
         const aggregate = await this.repository.findById(command.pengerjaanId);
         aggregate.finish();
         await this.repository.save(aggregate);
+
+        this.eventBus.publish(new PengerjaanFinishedEvent(aggregate.id, aggregate.siswaId));
     }
 }
 
 @CommandHandler(ResetPengerjaanCommand)
 export class ResetPengerjaanHandler implements ICommandHandler<ResetPengerjaanCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: ResetPengerjaanCommand): Promise<void> {
         const aggregate = await this.repository.findById(command.pengerjaanId);
         aggregate.reset();
         await this.repository.save(aggregate);
+
+        this.eventBus.publish(new PengerjaanResetEvent(aggregate.id, aggregate.siswaId));
     }
 }
 
 @CommandHandler(ResetPengerjaanTimeCommand)
 export class ResetPengerjaanTimeHandler implements ICommandHandler<ResetPengerjaanTimeCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: ResetPengerjaanTimeCommand): Promise<void> {
         const aggregate = await this.repository.findById(command.pengerjaanId);
         aggregate.resetTime();
         await this.repository.save(aggregate);
+
+        this.eventBus.publish(new PengerjaanTimeResetEvent(aggregate.id, aggregate.siswaId));
     }
 }
 
 @CommandHandler(WarnPengerjaanCommand)
 export class WarnPengerjaanHandler implements ICommandHandler<WarnPengerjaanCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: WarnPengerjaanCommand): Promise<{ id: string; status: string; strike: number }> {
         const aggregate = await this.repository.findById(command.pengerjaanId);
         aggregate.warn();
         await this.repository.save(aggregate);
+
+        this.eventBus.publish(new PengerjaanWarnedEvent(aggregate.id, aggregate.siswaId, aggregate.strike));
+
         return {
             id: aggregate.id,
             status: aggregate.status,
@@ -119,12 +155,18 @@ export class WarnPengerjaanHandler implements ICommandHandler<WarnPengerjaanComm
 
 @CommandHandler(UnwarnPengerjaanCommand)
 export class UnwarnPengerjaanHandler implements ICommandHandler<UnwarnPengerjaanCommand> {
-    constructor(private readonly repository: PengerjaanRepository) {}
+    constructor(
+        private readonly repository: PengerjaanRepository,
+        private readonly eventBus: EventBus
+    ) {}
 
     async execute(command: UnwarnPengerjaanCommand): Promise<{ id: string; strike: number }> {
         const aggregate = await this.repository.findById(command.pengerjaanId);
         aggregate.unwarn();
         await this.repository.save(aggregate);
+
+        this.eventBus.publish(new PengerjaanUnwarnedEvent(aggregate.id, aggregate.siswaId));
+
         return {
             id: aggregate.id,
             strike: aggregate.strike

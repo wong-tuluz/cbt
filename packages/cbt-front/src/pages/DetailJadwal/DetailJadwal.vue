@@ -264,6 +264,7 @@ import {
   type IPengerjaan,
   type Payload 
 } from '@/services/pengerjaanService'
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const route = useRoute()
 const router = useRouter()
@@ -277,6 +278,14 @@ const showTokenInput = ref(false)
 const tokenInput = ref('')
 const tokenError = ref('')
 const sessionIdCreated = ref('')
+
+// WebSocket real-time refresh
+useWebSocket({
+  onGlobalNotification: (data) => {
+    console.log('WS: Global notification received', data)
+    fetchData()
+  }
+})
 
 // Compute existing session
 const existingSession = computed(() => {

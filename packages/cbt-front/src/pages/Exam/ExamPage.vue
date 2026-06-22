@@ -261,6 +261,8 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import type { Student } from '@/types/ICommon'
 import { getStudentData } from '@/services/eventService'
+import { useWebSocket } from '@/composables/useWebSocket'
+import { useExamMode } from '@/composables/useExamMode'
 
 const route = useRoute()
 const router = useRouter()
@@ -268,6 +270,8 @@ const { toast } = useToast()
 const examStore = useExamStore()
 const raw = sessionStorage.getItem('examContext')
 const examContext = raw ? JSON.parse(raw) : null
+const { violationCount, autoSubmitExam } = useExamMode()
+const sessionId = route.params.id as string
 
 const student = ref<Student>({
   id: '',
@@ -275,6 +279,53 @@ const student = ref<Student>({
   nis: '',
   kelas: '',
   username: ''
+})
+
+// Setup real-time listeners for this exam session
+useWebSocket({
+  rooms: sessionId ? [sessionId] : [],
+  onPengerjaanNotification: (data) => {
+    console.log('WS: Pengerjaan event received', data)
+    if (data.type === 'warned') {
+      if (data.strike !== undefined) {
+        violationCount.value = data.strike
+        toast({
+          title: 'Peringatan dari Proktor!',
+          description: `Anda mendapatkan peringatan ke-${data.strike}. Harap ikuti aturan ujian!`,
+          variant: 'destructive'
+        })
+      }
+    } else if (data.type === 'unwarned') {
+      violationCount.value = 0
+      toast({
+        title: 'Peringatan Dihapus',
+        description: 'Semua peringatan Anda telah dihapus oleh proktor.',
+        variant: 'default'
+      })
+    } else if (data.type === 'finished') {
+      toast({
+        title: 'Ujian Selesai',
+        description: 'Ujian Anda telah diakhiri oleh proktor.',
+        variant: 'default'
+      })
+      autoSubmitExam()
+    } else if (data.type === 'time-reset') {
+      examStore.syncStateFromServer()
+      toast({
+        title: 'Waktu Ujian Direset',
+        description: 'Durasi ujian Anda telah dimulai ulang oleh proktor.',
+        variant: 'default'
+      })
+    } else if (data.type === 'reset') {
+      toast({
+        title: 'Ujian Direset',
+        description: 'Ujian Anda telah direset oleh proktor.',
+        variant: 'default'
+      })
+      localStorage.removeItem("soal")
+      router.push('/dashboard')
+    }
+  }
 })
 
 const fetchData = async () => {  

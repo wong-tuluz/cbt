@@ -12,6 +12,7 @@ import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { join } from 'path';
     PengerjaanModule,
     CoreSyncModule,
     RedisModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [

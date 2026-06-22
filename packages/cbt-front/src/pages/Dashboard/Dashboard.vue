@@ -103,9 +103,11 @@ import {
 import type { Event, Student } from '@/types/ICommon'
 import { getStudentData, getEvent } from '@/services/eventService'
 import CardJadwal from '@/components/features/CardJadwal.vue'
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const router = useRouter()
 
+// Initialize student synchronously from localStorage
 const student = ref<Student>({
   id: '',
   nama: '',
@@ -114,10 +116,29 @@ const student = ref<Student>({
   username: ''
 })
 
+try {
+  student.value = getStudentData()
+} catch (e) {
+  console.warn('Student data not found in localStorage yet', e)
+}
+
 const events = ref<Event[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const startingExam = ref<string | null>(null)
+
+// Setup real-time updates via WebSocket
+useWebSocket({
+  rooms: student.value.id ? [student.value.id] : [],
+  onGlobalNotification: (data) => {
+    console.log('WS: Global notification received', data)
+    fetchData()
+  },
+  onPengerjaanNotification: (data) => {
+    console.log('WS: Pengerjaan notification received', data)
+    fetchData()
+  }
+})
 
 // Helper function - disable untuk selain ongoing
 const isExamDisabled = (status: string) => {
@@ -130,7 +151,6 @@ const fetchData = async () => {
   error.value = null
   
   try {
-    student.value = getStudentData()
     events.value = await getEvent()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Gagal memuat data'
