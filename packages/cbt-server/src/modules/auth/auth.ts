@@ -49,6 +49,7 @@ export const auth = betterAuth({
         "https://api-cbt-mupa.antz.biz.id",
         "https://antz.biz.id",
         "http://localhost:5173",
+        "http://localhost:5174",
         "https://localhost"
     ],
     disableTrustedOriginsCors: false,

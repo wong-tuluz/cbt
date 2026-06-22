@@ -1,0 +1,19 @@
+{
+    "targets": {
+        "dev": {
+            "executor": "nx:run-commands",
+            "continuous": true,
+            "options": {
+                "command": "vite --port 5174",
+                "cwd": "packages/cbt-backoffice"
+            }
+        },
+        "build": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "vite build",
+                "cwd": "packages/cbt-backoffice"
+            }
+        }
+    }
+}
