@@ -5,7 +5,6 @@ import { Agenda, TokenStore } from "./types";
 import { SettingService } from "../settings/settings.service";
 import { AgendaService } from "../agenda/agenda.service";
 import { JadwalService } from "../jadwal/jadwal.service";
-import { MateriService } from "../materi/materi.service";
 import { PaketSoalService } from "../paket-soal/paket-soal.service";
 import { SoalService, SoalType } from "../soal/soal.service";
 import { SiswaService } from "../siswa/siswa.service";
@@ -30,7 +29,6 @@ export class CoreSyncService {
         private readonly agendaService: AgendaService,
         private readonly jadwalService: JadwalService,
         private readonly paketSoalService: PaketSoalService,
-        private readonly materiService: MateriService,
         private readonly soalService: SoalService,
         private readonly siswaService: SiswaService,
     ) { }
@@ -91,22 +89,20 @@ export class CoreSyncService {
                 title: jadwal.paket_soal.nama_paket_soal,
                 description: '',
                 remoteId: jadwal.paket_soal.id,
-            });
-
-            for (const materi of jadwal.paket_soal.materi) {
-                const materiSoal = await this.materiService.save({
+                materi: jadwal.paket_soal.materi.map(materi => ({
                     id: materi.id,
-                    paketSoalId: paketSoal.id,
                     title: materi.nama_materi,
                     order: materi.urutan ?? 0,
                     timeLimit: materi.waktu || 0,
                     remoteId: materi.id,
-                });
+                })),
+            });
 
+            for (const materi of jadwal.paket_soal.materi) {
                 for (const soal of materi.soal) {
                     const payload = {
                         id: soal.id,
-                        materiSoalId: materiSoal.id,
+                        materiSoalId: materi.id,
                         prompt: soal.soal,
                         type: "single-choice" as SoalType,
                         order: soal.nomor_soal ?? 0,

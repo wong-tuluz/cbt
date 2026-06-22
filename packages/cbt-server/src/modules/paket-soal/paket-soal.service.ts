@@ -15,6 +15,14 @@ export class PaketSoalService {
         title: string;
         description?: string | null;
         remoteId?: string | null;
+        materi?: Array<{
+            id?: string;
+            title: string;
+            description?: string | null;
+            order: number;
+            timeLimit: number;
+            remoteId?: string | null;
+        }>;
     }) {
         return this.commandBus.execute(
             new SavePaketSoalCommand(
@@ -22,6 +30,7 @@ export class PaketSoalService {
                 input.title,
                 input.description,
                 input.remoteId,
+                input.materi,
             ),
         );
     }

@@ -1,12 +1,14 @@
 import { AggregateRoot } from '@nestjs/cqrs';
 import { generateUuidV7 } from '../../../utils/uuid';
 import { MissingIdPaketSoalError, EmptyTitlePaketSoalError } from '../errors/paket-soal.errors';
+import { Materi } from './materi.entity';
 
 export interface PaketSoalProps {
     id: string;
     remoteId?: string | null;
     title: string;
     description?: string | null;
+    materi: Materi[];
 }
 
 export class PaketSoal extends AggregateRoot {
@@ -20,10 +22,12 @@ export class PaketSoal extends AggregateRoot {
         remoteId?: string | null;
         title: string;
         description?: string | null;
+        materi?: Materi[];
     }): PaketSoal {
         return new PaketSoal({
             ...props,
             id: props.id ?? generateUuidV7('paket-soal'),
+            materi: props.materi ?? [],
         });
     }
 
@@ -43,6 +47,10 @@ export class PaketSoal extends AggregateRoot {
         return this.props.description;
     }
 
+    public get materi(): Materi[] {
+        return [...this.props.materi];
+    }
+
     public updateTitle(title: string): void {
         if (!title || title.trim() === '') {
             throw new EmptyTitlePaketSoalError();
@@ -52,6 +60,33 @@ export class PaketSoal extends AggregateRoot {
 
     public updateDescription(description?: string | null): void {
         this.props.description = description;
+    }
+
+    public addOrUpdateMateri(materiProps: {
+        id?: string;
+        title: string;
+        description?: string | null;
+        order: number;
+        timeLimit: number;
+        remoteId?: string | null;
+    }): Materi {
+        const existingIndex = materiProps.id
+            ? this.props.materi.findIndex((m) => m.id === materiProps.id)
+            : -1;
+
+        const newMateri = Materi.create(materiProps);
+
+        if (existingIndex > -1) {
+            this.props.materi[existingIndex] = newMateri;
+        } else {
+            this.props.materi.push(newMateri);
+        }
+
+        return newMateri;
+    }
+
+    public removeMateri(materiId: string): void {
+        this.props.materi = this.props.materi.filter((m) => m.id !== materiId);
     }
 
     public validate(): void {

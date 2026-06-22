@@ -12,12 +12,33 @@ export class SavePaketSoalHandler implements ICommandHandler<SavePaketSoalComman
     ) {}
 
     async execute(command: SavePaketSoalCommand): Promise<{ id: string }> {
-        const aggregate = PaketSoal.create({
-            id: command.id,
-            remoteId: command.remoteId,
-            title: command.title,
-            description: command.description,
-        });
+        let aggregate: PaketSoal | null = null;
+        if (command.id) {
+            aggregate = await this.repository.findById(command.id);
+        }
+
+        if (aggregate) {
+            aggregate.updateTitle(command.title);
+            aggregate.updateDescription(command.description);
+        } else {
+            aggregate = PaketSoal.create({
+                id: command.id,
+                remoteId: command.remoteId,
+                title: command.title,
+                description: command.description,
+            });
+        }
+
+        if (command.materi !== undefined) {
+            // Replace the entire child list
+            const existingIds = aggregate.materi.map((m) => m.id);
+            for (const id of existingIds) {
+                aggregate.removeMateri(id);
+            }
+            for (const m of command.materi) {
+                aggregate.addOrUpdateMateri(m);
+            }
+        }
 
         await this.repository.save(aggregate);
 

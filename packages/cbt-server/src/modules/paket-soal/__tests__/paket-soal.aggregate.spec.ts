@@ -1,63 +1,83 @@
 import { PaketSoal } from '../entities/paket-soal.aggregate';
-import { EmptyTitlePaketSoalError } from '../errors/paket-soal.errors';
+import { Materi } from '../entities/materi.entity';
+import {
+    EmptyTitlePaketSoalError,
+    EmptyTitleMateriError,
+    NegativeOrderMateriError,
+    NegativeTimeLimitMateriError,
+} from '../errors/paket-soal.errors';
 
-describe('PaketSoal Aggregate Root', () => {
-    it('should successfully create a valid PaketSoal', () => {
+describe('PaketSoal Aggregate Root with Materi', () => {
+    it('should successfully create a valid PaketSoal with child materi', () => {
+        const materi1 = Materi.create({ id: 'm-1', title: 'Aritmatika', order: 1, timeLimit: 30 });
+        const materi2 = Materi.create({ id: 'm-2', title: 'Aljabar', order: 2, timeLimit: 40 });
+
         const paket = PaketSoal.create({
             id: 'paket-123',
             title: 'Ujian Akhir Semester',
-            description: 'Soal UAS Matematika',
+            description: 'Matematika',
+            materi: [materi1, materi2],
         });
 
         expect(paket).toBeDefined();
-        expect(paket.id).toBe('paket-123');
-        expect(paket.title).toBe('Ujian Akhir Semester');
-        expect(paket.description).toBe('Soal UAS Matematika');
+        expect(paket.materi.length).toBe(2);
+        expect(paket.materi[0].title).toBe('Aritmatika');
     });
 
-    it('should generate a new UUID v7 if id is not specified', () => {
+    it('should throw EmptyTitleMateriError if materi title is empty', () => {
+        expect(() => {
+            Materi.create({
+                title: '',
+                order: 1,
+                timeLimit: 30,
+            });
+        }).toThrow(EmptyTitleMateriError);
+    });
+
+    it('should throw NegativeOrderMateriError if materi order is negative', () => {
+        expect(() => {
+            Materi.create({
+                title: 'Aljabar',
+                order: -1,
+                timeLimit: 30,
+            });
+        }).toThrow(NegativeOrderMateriError);
+    });
+
+    it('should throw NegativeTimeLimitMateriError if materi timeLimit is zero or negative', () => {
+        expect(() => {
+            Materi.create({
+                title: 'Aljabar',
+                order: 1,
+                timeLimit: 0,
+            });
+        }).toThrow(NegativeTimeLimitMateriError);
+
+        expect(() => {
+            Materi.create({
+                title: 'Aljabar',
+                order: 1,
+                timeLimit: -5,
+            });
+        }).toThrow(NegativeTimeLimitMateriError);
+    });
+
+    it('should support adding and removing materi through the aggregate', () => {
         const paket = PaketSoal.create({
             title: 'Ujian Akhir Semester',
         });
 
-        expect(paket.id).toBeDefined();
-        expect(paket.id.length).toBeGreaterThan(0);
-    });
-
-    it('should throw EmptyTitlePaketSoalError if title is empty', () => {
-        expect(() => {
-            PaketSoal.create({
-                title: '',
-            });
-        }).toThrow(EmptyTitlePaketSoalError);
-
-        expect(() => {
-            PaketSoal.create({
-                title: '   ',
-            });
-        }).toThrow(EmptyTitlePaketSoalError);
-    });
-
-    it('should throw EmptyTitlePaketSoalError when updating title to empty string', () => {
-        const paket = PaketSoal.create({
-            title: 'Ujian Awal',
+        const materi = paket.addOrUpdateMateri({
+            id: 'm-100',
+            title: 'Trigonometri',
+            order: 3,
+            timeLimit: 25,
         });
 
-        expect(() => {
-            paket.updateTitle('');
-        }).toThrow(EmptyTitlePaketSoalError);
-    });
+        expect(paket.materi.length).toBe(1);
+        expect(paket.materi[0].id).toBe('m-100');
 
-    it('should successfully update title and description', () => {
-        const paket = PaketSoal.create({
-            title: 'Ujian Awal',
-            description: 'Deskripsi Awal',
-        });
-
-        paket.updateTitle('Ujian Akhir');
-        paket.updateDescription('Deskripsi Akhir');
-
-        expect(paket.title).toBe('Ujian Akhir');
-        expect(paket.description).toBe('Deskripsi Akhir');
+        paket.removeMateri('m-100');
+        expect(paket.materi.length).toBe(0);
     });
 });

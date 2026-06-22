@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
-import { MateriModule } from './modules/materi/materi.module';
 import { SoalModule } from './modules/soal/soal.module';
 import { PaketSoalModule } from './modules/paket-soal/paket-soal.module';
 import { AgendaModule } from './modules/agenda/agenda.module';
@@ -26,7 +25,6 @@ import { join } from 'path';
     }),
     ScheduleModule.forRoot(),
     AuthModule,
-    MateriModule,
     SoalModule,
     PaketSoalModule,
     AgendaModule,

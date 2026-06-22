@@ -28,6 +28,7 @@ export class PaketSoalController {
                 body.title,
                 body.description,
                 undefined,
+                body.materi,
             ),
         );
     }
@@ -40,6 +41,7 @@ export class PaketSoalController {
                 body.title,
                 body.description,
                 undefined,
+                body.materi,
             ),
         );
     }
@@ -54,6 +56,7 @@ export class PaketSoalController {
                 merged.title,
                 merged.description,
                 merged.remoteId,
+                body.materi,
             ),
         );
     }

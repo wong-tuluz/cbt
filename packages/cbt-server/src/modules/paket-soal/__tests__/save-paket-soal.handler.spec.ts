@@ -5,6 +5,7 @@ import { SavePaketSoalCommand } from '../commands/save-paket-soal.command';
 import { PaketSoalRepository } from '../repository/paket-soal.repository';
 import { PaketSoalSavedEvent } from '../events/paket-soal-saved.event';
 import { EmptyTitlePaketSoalError } from '../errors/paket-soal.errors';
+import { PaketSoal } from '../entities/paket-soal.aggregate';
 
 describe('SavePaketSoalHandler', () => {
     let handler: SavePaketSoalHandler;
@@ -13,6 +14,7 @@ describe('SavePaketSoalHandler', () => {
 
     beforeEach(async () => {
         const mockRepository = {
+            findById: jest.fn().mockResolvedValue(null),
             save: jest.fn().mockImplementation((paket) => Promise.resolve(paket)),
         };
 
@@ -42,6 +44,9 @@ describe('SavePaketSoalHandler', () => {
             'Ujian Akhir Semester',
             'Soal UAS Matematika',
             'remote-789',
+            [
+                { id: 'm-1', title: 'Aljabar', order: 1, timeLimit: 30 }
+            ]
         );
 
         const mockApply = jest.fn();
@@ -58,6 +63,28 @@ describe('SavePaketSoalHandler', () => {
         expect(publisher.mergeObjectContext).toHaveBeenCalled();
         expect(mockApply).toHaveBeenCalledWith(new PaketSoalSavedEvent('paket-123'));
         expect(mockCommit).toHaveBeenCalled();
+    });
+
+    it('should update existing aggregate if found in repository', async () => {
+        const existingAggregate = PaketSoal.create({
+            id: 'paket-123',
+            title: 'Existing Title',
+        });
+        repository.findById.mockResolvedValue(existingAggregate);
+
+        const command = new SavePaketSoalCommand(
+            'paket-123',
+            'Updated Title',
+            'New Description',
+            'remote-789',
+            []
+        );
+
+        await handler.execute(command);
+
+        expect(repository.findById).toHaveBeenCalledWith('paket-123');
+        expect(existingAggregate.title).toBe('Updated Title');
+        expect(existingAggregate.description).toBe('New Description');
     });
 
     it('should throw EmptyTitlePaketSoalError if title is empty', async () => {
