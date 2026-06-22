@@ -1,14 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { db, workSessionTable } from "src/common/db";
 import { eq, and } from "drizzle-orm";
-import { JadwalService } from "../jadwal/jadwal.service";
+import { AcaraService } from "../acara/acara.service";
 
 export type SessionStatus = 'in_progress' | 'finished';
 
 @Injectable()
 export class PengerjaanService {
     constructor(
-        private readonly jadwalService: JadwalService
+        private readonly acaraService: AcaraService
     ) { }
 
     async hasAccess(sessionId: string, siswaId: string) {
@@ -48,13 +48,13 @@ export class PengerjaanService {
     }
 
     async create(siswaId: string, jadwalId: string, token: string) {
-        const jadwal = await this.jadwalService.findById(jadwalId);
+        const jadwal = await this.acaraService.findJadwalById(jadwalId);
 
         if (jadwal.token !== token) {
             throw new BadRequestException("Invalid token jadwal")
         }
 
-        const timeLimit = this.jadwalService.getTimeLimit(jadwal, new Date());
+        const timeLimit = this.acaraService.getTimeLimit(jadwal, new Date());
 
         const id = crypto.randomUUID();
         const session = {

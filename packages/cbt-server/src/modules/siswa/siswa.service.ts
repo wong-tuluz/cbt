@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { db, DbTransaction, siswaTable, agendaSiswaTable, user as userTable } from "src/common/db";
+import { db, DbTransaction, siswaTable, acaraSiswaTable, user as userTable } from "src/common/db";
 import { eq, and, exists, or, count, asc } from "drizzle-orm";
 import { auth } from "../auth/auth";
 
@@ -7,15 +7,15 @@ import { auth } from "../auth/auth";
 export class SiswaService {
     constructor() { }
 
-    async listAll(filter?: { kelas?: string, agendaId?: string }, pagination?: { limit?: number, offset?: number }) {
+    async listAll(filter?: { kelas?: string, acaraId?: string }, pagination?: { limit?: number, offset?: number }) {
         const filters: any[] = [];
         if (filter?.kelas) filters.push(eq(siswaTable.kelas, filter.kelas));
-        if (filter?.agendaId) {
+        if (filter?.acaraId) {
             filters.push(exists(
-                db.select().from(agendaSiswaTable)
+                db.select().from(acaraSiswaTable)
                     .where(and(
-                        eq(agendaSiswaTable.siswaId, siswaTable.id),
-                        eq(agendaSiswaTable.agendaId, filter.agendaId),
+                        eq(acaraSiswaTable.siswaId, siswaTable.id),
+                        eq(acaraSiswaTable.acaraId, filter.acaraId),
                     )),
             ));
         }

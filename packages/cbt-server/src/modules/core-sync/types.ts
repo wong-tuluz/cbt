@@ -3,7 +3,7 @@ export type TokenStore = {
     refresh_token: string
 }
 
-export type Agenda = {
+export type Acara = {
     id: string;
     nama_event: string;
     mulai: Date;

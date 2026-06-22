@@ -24,7 +24,7 @@ export async function syncEventBo(id: string) {
 
 export async function getAgenda(): Promise<IAgendaResponse> {
   try {
-    const response = await api.get<IAgendaResponse>(`/agenda`)
+    const response = await api.get<IAgendaResponse>(`/acara`)
     return response
   } catch (error) {
     console.error('Error fetching agenda:', error)

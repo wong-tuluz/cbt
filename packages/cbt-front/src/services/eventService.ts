@@ -25,7 +25,7 @@ export function getStudentData(): Student {
  * Get daftar ujian dari API
  */
 export async function getEvent(): Promise<Event[]> {
-  const response = await api.get<ApiResponse<JadwalUjianResponse[]>>('/jadwal');
+  const response = await api.get<ApiResponse<JadwalUjianResponse[]>>('/acara/jadwal');
   
 return response.data.map(jadwal => ({
   id: jadwal.jadwalId,

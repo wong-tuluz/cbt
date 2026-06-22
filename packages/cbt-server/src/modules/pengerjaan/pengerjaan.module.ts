@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { SiswaModule } from '../siswa/siswa.module';
-import { JadwalModule } from '../jadwal/jadwal.module';
+import { AcaraModule } from '../acara/acara.module';
 import { PengerjaanController } from './pengerjaan.controller';
 import { PengerjaanService } from './pengerjaan.service';
 import { PengerjaanCronService } from './pengerjaan-cron.service';
 
 @Module({
-    imports: [SiswaModule, JadwalModule],
+    imports: [SiswaModule, AcaraModule],
     controllers: [PengerjaanController],
     providers: [PengerjaanService, PengerjaanCronService],
     exports: [PengerjaanService],

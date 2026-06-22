@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PengerjaanService } from "../pengerjaan/pengerjaan.service";
 import { SiswaService } from "../siswa/siswa.service";
-import { JadwalService } from "../jadwal/jadwal.service";
+import { AcaraService } from "../acara/acara.service";
 import { PengerjaanStateService } from "../pengerjaan-state/pengerjaan-state.service";
 
 @Injectable()
@@ -10,7 +10,7 @@ export class PengerjaanDetailService {
         private readonly stateService: PengerjaanStateService,
         private readonly pengerjaanService: PengerjaanService,
         private readonly siswaService: SiswaService,
-        private readonly jadwalService: JadwalService
+        private readonly acaraService: AcaraService
     ) { }
 
     async listAll(filter?: {
@@ -22,7 +22,7 @@ export class PengerjaanDetailService {
 
         const res = Promise.all(data.map(async x => {
             const state = await this.stateService.getState(x.id);
-            const jadwal = await this.jadwalService.findById(x.jadwalId);
+            const jadwal = await this.acaraService.findJadwalById(x.jadwalId);
             const siswa = await this.siswaService.findById(x.siswaId);
 
             return {

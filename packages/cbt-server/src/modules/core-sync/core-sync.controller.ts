@@ -18,7 +18,7 @@ export class CoreSyncController {
     }
 
     @Post('events/:id/push')
-    async pushResults(@Param('id') agendaId: string) {
-        return await this.service.pushResults(agendaId);
+    async pushResults(@Param('id') acaraId: string) {
+        return await this.service.pushResults(acaraId);
     }
 }

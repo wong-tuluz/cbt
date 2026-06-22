@@ -1,14 +1,13 @@
 import { HttpService } from "@nestjs/axios";
 import { Injectable, Logger } from "@nestjs/common";
 import { firstValueFrom } from "rxjs";
-import { Agenda, TokenStore } from "./types";
+import { Acara, TokenStore } from "./types";
 import { SettingService } from "../settings/settings.service";
-import { AgendaService } from "../agenda/agenda.service";
-import { JadwalService } from "../jadwal/jadwal.service";
+import { AcaraService } from "../acara/acara.service";
 import { PaketSoalService } from "../paket-soal/paket-soal.service";
 import { SoalService, SoalType } from "../soal/soal.service";
 import { SiswaService } from "../siswa/siswa.service";
-import { agendaSiswaTable, agendaTable, db, jadwalTable, jawabanSoalTable, materiSoalTable, paketSoalTable, soalTable, workSessionAnswerTable, workSessionTable } from "src/common/db";
+import { acaraSiswaTable, acaraTable, db, jadwalTable, jawabanSoalTable, materiSoalTable, paketSoalTable, soalTable, workSessionAnswerTable, workSessionTable } from "src/common/db";
 import { eq, and } from "drizzle-orm";
 
 const SYNC_KEY = "event_sync";
@@ -26,14 +25,13 @@ export class CoreSyncService {
     constructor(
         private readonly httpService: HttpService,
         private readonly storage: SettingService,
-        private readonly agendaService: AgendaService,
-        private readonly jadwalService: JadwalService,
+        private readonly acaraService: AcaraService,
         private readonly paketSoalService: PaketSoalService,
         private readonly soalService: SoalService,
         private readonly siswaService: SiswaService,
     ) { }
 
-    async listEvents(): Promise<(Omit<Agenda, 'jadwal'> & { synced: boolean })[]> {
+    async listEvents(): Promise<(Omit<Acara, 'jadwal'> & { synced: boolean })[]> {
         const token = await this.getAccessToken();
         const syncedEvent = await this.storage.fetch<string[]>(SYNC_KEY) || [];
 
@@ -54,29 +52,13 @@ export class CoreSyncService {
     async syncEvent(eventId: string) {
         const event = await this.fetchEventDetail(eventId);
 
-        // console.log(event)
-
-        // appendFileSync(
-        //     "/home/arta/pengerjaan/nexus-lms-be/events.log",
-        //     JSON.stringify(event, null, 2) + "\n---\n",
-        //     "utf8"
-        // );
-
-        // return;
-
         const syncedEvent = await this.storage.fetch<string[]>(SYNC_KEY) || [];
         if (!syncedEvent.includes(event.id)) {
             syncedEvent.push(event.id);
             await this.storage.store<string[]>(syncedEvent, SYNC_KEY);
         }
 
-        const agenda = await this.agendaService.save({
-            id: event.id,
-            title: event.nama_event,
-            startTime: this.parseMysqlDatetime(event.mulai.toString()),
-            endTime: this.parseMysqlDatetime(event.selesai.toString()),
-            remoteId: event.id,
-        });
+        const jadwalsToSave: any[] = [];
 
         for (const jadwal of event.jadwal) {
             if (!jadwal.paket_soal) {
@@ -123,9 +105,8 @@ export class CoreSyncService {
                 }
             }
 
-            await this.jadwalService.save({
+            jadwalsToSave.push({
                 id: jadwal.id,
-                agendaId: agenda.id,
                 paketSoalId: paketSoal.id,
                 title: jadwal.nama_jadwal,
                 token: jadwal.token,
@@ -136,6 +117,15 @@ export class CoreSyncService {
                 remoteId: jadwal.id,
             });
         }
+
+        const acara = await this.acaraService.save({
+            id: event.id,
+            title: event.nama_event,
+            startTime: this.parseMysqlDatetime(event.mulai.toString()),
+            endTime: this.parseMysqlDatetime(event.selesai.toString()),
+            remoteId: event.id,
+            jadwals: jadwalsToSave,
+        });
 
         for (const peserta of event.peserta) {
             try {
@@ -149,20 +139,20 @@ export class CoreSyncService {
                     password: peserta.password,
                 });
 
-                await this.agendaService.addSiswa(agenda.id, siswa.id, peserta.id_peserta_perevent, peserta.id_peserta_perevent);
+                await this.acaraService.addSiswa(acara.id, siswa.id, peserta.id_peserta_perevent, peserta.id_peserta_perevent);
             } catch (e) {
                 this.logger.error(`Failed to sync student ${peserta.username}: ${e.message}`, e.stack);
             }
         }
     }
 
-    async pushResults(agendaId: string) {
-        const agenda = await this.agendaService.findById(agendaId);
-        if (!agenda.remoteId) {
-            throw new Error("Cannot push results for an agenda without a remoteId. Please re-sync the event first.");
+    async pushResults(acaraId: string) {
+        const acara = await this.acaraService.findById(acaraId);
+        if (!acara.remoteId) {
+            throw new Error("Cannot push results for an acara without a remoteId. Please re-sync the event first.");
         }
 
-        const jadwals = await db.select().from(jadwalTable).where(eq(jadwalTable.agendaId, agendaId));
+        const jadwals = await db.select().from(jadwalTable).where(eq(jadwalTable.acaraId, acaraId));
         const results: any[] = [];
 
         for (const jadwal of jadwals) {
@@ -173,10 +163,10 @@ export class CoreSyncService {
                 ));
 
             for (const session of sessions) {
-                const participation = await db.select().from(agendaSiswaTable)
+                const participation = await db.select().from(acaraSiswaTable)
                     .where(and(
-                        eq(agendaSiswaTable.agendaId, agendaId),
-                        eq(agendaSiswaTable.siswaId, session.siswaId)
+                        eq(acaraSiswaTable.acaraId, acaraId),
+                        eq(acaraSiswaTable.siswaId, session.siswaId)
                     )).limit(1).then(res => res[0]);
 
                 if (!participation) continue;
@@ -229,7 +219,7 @@ export class CoreSyncService {
         }
 
         if (results.length === 0) {
-            this.logger.warn(`No finished sessions found to push for agenda ${agendaId}`);
+            this.logger.warn(`No finished sessions found to push for acara ${acaraId}`);
             return { message: "No results to push" };
         }
 
@@ -238,14 +228,14 @@ export class CoreSyncService {
             .innerJoin(materiSoalTable, eq(soalTable.materiSoalId, materiSoalTable.id))
             .innerJoin(paketSoalTable, eq(materiSoalTable.paketSoalId, paketSoalTable.id))
             .innerJoin(jadwalTable, eq(jadwalTable.paketSoalId, paketSoalTable.id))
-            .where(eq(jadwalTable.agendaId, agendaId));
+            .where(eq(jadwalTable.acaraId, acaraId));
 
         const payload = {
             jawaban: results
         };
 
         const token = await this.getAccessToken();
-        this.logger.debug(`Pushing results for agenda ${agendaId}: ${JSON.stringify(payload, null, 2)}`);
+        this.logger.debug(`Pushing results for acara ${acaraId}: ${JSON.stringify(payload, null, 2)}`);
         const res = await firstValueFrom(
             this.httpService.post(`${this.config.url}/upload-jawaban`, payload, {
                 headers: {
@@ -259,7 +249,7 @@ export class CoreSyncService {
         return res.data;
     }
 
-    private async fetchEventDetail(eventId: string): Promise<Agenda> {
+    private async fetchEventDetail(eventId: string): Promise<Acara> {
         const token = await this.getAccessToken();
         const res = await firstValueFrom(
             this.httpService.get<any>(`${this.config.url}/masterEventDetails/${eventId}`, {

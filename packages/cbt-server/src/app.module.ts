@@ -3,8 +3,7 @@ import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { SoalModule } from './modules/soal/soal.module';
 import { PaketSoalModule } from './modules/paket-soal/paket-soal.module';
-import { AgendaModule } from './modules/agenda/agenda.module';
-import { JadwalModule } from './modules/jadwal/jadwal.module';
+import { AcaraModule } from './modules/acara/acara.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { PengerjaanModule } from './modules/pengerjaan/pengerjaan.module';
 import { PengerjaanStateModule } from './modules/pengerjaan-state/pengerjaan-state.module';
@@ -27,8 +26,7 @@ import { join } from 'path';
     AuthModule,
     SoalModule,
     PaketSoalModule,
-    AgendaModule,
-    JadwalModule,
+    AcaraModule,
     SettingsModule,
     PengerjaanModule,
     PengerjaanStateModule,

@@ -3,8 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { CoreSyncController } from './core-sync.controller';
 import { CoreSyncService } from './core-sync.service';
 import { SettingsModule } from '../settings/settings.module';
-import { AgendaModule } from '../agenda/agenda.module';
-import { JadwalModule } from '../jadwal/jadwal.module';
+import { AcaraModule } from '../acara/acara.module';
 import { PaketSoalModule } from '../paket-soal/paket-soal.module';
 import { SoalModule } from '../soal/soal.module';
 import { SiswaModule } from '../siswa/siswa.module';
@@ -13,8 +12,7 @@ import { SiswaModule } from '../siswa/siswa.module';
     imports: [
         HttpModule,
         SettingsModule,
-        AgendaModule,
-        JadwalModule,
+        AcaraModule,
         PaketSoalModule,
         SoalModule,
         SiswaModule

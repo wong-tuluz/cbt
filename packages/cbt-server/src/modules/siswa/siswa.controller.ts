@@ -57,18 +57,18 @@ export class SiswaController {
 
     @Get()
     @ApiQuery({ name: 'kelas', required: false })
-    @ApiQuery({ name: 'agendaId', required: false })
+    @ApiQuery({ name: 'acaraId', required: false })
     @ApiQuery({ name: 'limit', required: false, type: Number })
     @ApiQuery({ name: 'offset', required: false, type: Number })
     async get(
         @Session() session: UserSession,
         @Query("kelas") kelas?: string,
-        @Query("agendaId") agendaId?: string,
+        @Query("acaraId") acaraId?: string,
         @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
         @Query("offset", new ParseIntPipe({ optional: true })) offset?: number,
     ) {
         if (session.user.role != 'admin') throw new UnauthorizedException()
-        return await this.service.listAll({ kelas, agendaId }, { limit, offset })
+        return await this.service.listAll({ kelas, acaraId }, { limit, offset })
     }
 
     @Get(':id')
