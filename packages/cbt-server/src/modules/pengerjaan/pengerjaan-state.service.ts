@@ -1,13 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { db, workSessionTable, soalTable, materiSoalTable, paketSoalTable, jawabanSoalTable, workSessionAnswerTable, workSessionMarkerTable } from 'src/common/db';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { db, soalTable, materiSoalTable, paketSoalTable, jawabanSoalTable, pengerjaanJawabanTable, pengerjaanMarkerTable } from 'src/common/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { shuffle } from 'src/utils/seedrand';
-import { PengerjaanService } from '../pengerjaan/pengerjaan.service';
+import { PengerjaanService } from './pengerjaan.service';
+import { SubmitPengerjaanActionCommand } from './commands/pengerjaan.commands';
 
 @Injectable()
 export class PengerjaanStateService {
     constructor(
         private readonly pengerjaanService: PengerjaanService,
+        private readonly commandBus: CommandBus,
     ) { }
 
     async getState(sessionId: string) {
@@ -42,13 +45,13 @@ export class PengerjaanStateService {
 
         const [allOptions, allSessionAnswers, allMarkers] = await Promise.all([
             db.select().from(jawabanSoalTable).where(inArray(jawabanSoalTable.soalId, soalIds)),
-            db.select().from(workSessionAnswerTable).where(and(
-                eq(workSessionAnswerTable.workSessionId, sessionId),
-                inArray(workSessionAnswerTable.soalId, soalIds)
+            db.select().from(pengerjaanJawabanTable).where(and(
+                eq(pengerjaanJawabanTable.pengerjaanId, sessionId),
+                inArray(pengerjaanJawabanTable.soalId, soalIds)
             )),
-            db.select().from(workSessionMarkerTable).where(and(
-                eq(workSessionMarkerTable.workSessionId, sessionId),
-                inArray(workSessionMarkerTable.soalId, soalIds)
+            db.select().from(pengerjaanMarkerTable).where(and(
+                eq(pengerjaanMarkerTable.pengerjaanId, sessionId),
+                inArray(pengerjaanMarkerTable.soalId, soalIds)
             ))
         ]);
 
@@ -158,13 +161,13 @@ export class PengerjaanStateService {
 
         const [allOptions, allSessionAnswers, allMarkers] = await Promise.all([
             db.select().from(jawabanSoalTable).where(inArray(jawabanSoalTable.soalId, soalIds)),
-            db.select().from(workSessionAnswerTable).where(and(
-                eq(workSessionAnswerTable.workSessionId, sessionId),
-                inArray(workSessionAnswerTable.soalId, soalIds)
+            db.select().from(pengerjaanJawabanTable).where(and(
+                eq(pengerjaanJawabanTable.pengerjaanId, sessionId),
+                inArray(pengerjaanJawabanTable.soalId, soalIds)
             )),
-            db.select().from(workSessionMarkerTable).where(and(
-                eq(workSessionMarkerTable.workSessionId, sessionId),
-                inArray(workSessionMarkerTable.soalId, soalIds)
+            db.select().from(pengerjaanMarkerTable).where(and(
+                eq(pengerjaanMarkerTable.pengerjaanId, sessionId),
+                inArray(pengerjaanMarkerTable.soalId, soalIds)
             ))
         ]);
 
@@ -248,7 +251,7 @@ export class PengerjaanStateService {
     }
 
     async submitAction(data: {
-        workSessionId: string,
+        pengerjaanId: string,
         soalId: string,
         marked?: boolean,
         jawaban: Array<{
@@ -256,57 +259,11 @@ export class PengerjaanStateService {
             value: string | null
         }>
     }) {
-        const session = await this.pengerjaanService.findById(data.workSessionId);
-
-        if (this.pengerjaanService.isExpired(session as any))
-            throw new BadRequestException('Session expired');
-
-        if (session.status != 'in_progress')
-            throw new BadRequestException('Session stale');
-
-        const MAX_DEADLOCK_RETRIES = 3;
-        let attempt = 0;
-        while (true) {
-            try {
-                await db.transaction(async tx => {
-                    await tx.delete(workSessionAnswerTable).where(and(
-                        eq(workSessionAnswerTable.workSessionId, data.workSessionId),
-                        eq(workSessionAnswerTable.soalId, data.soalId)
-                    ));
-
-                    await tx.delete(workSessionMarkerTable).where(and(
-                        eq(workSessionMarkerTable.workSessionId, data.workSessionId),
-                        eq(workSessionMarkerTable.soalId, data.soalId)
-                    ));
-
-                    if (data.jawaban.length > 0) {
-                        await tx.insert(workSessionAnswerTable).values(
-                            data.jawaban.map(x => ({
-                                id: crypto.randomUUID(),
-                                workSessionId: data.workSessionId,
-                                soalId: data.soalId,
-                                jawabanSoalId: x.jawabanSoalId,
-                                value: x.value,
-                            }))
-                        );
-                    }
-
-                    await tx.insert(workSessionMarkerTable).values({
-                        id: crypto.randomUUID(),
-                        workSessionId: data.workSessionId,
-                        soalId: data.soalId,
-                        isMarked: data.marked ?? false,
-                    });
-                });
-                break; // success
-            } catch (err: any) {
-                if (err?.code === 'ER_LOCK_DEADLOCK' && attempt < MAX_DEADLOCK_RETRIES) {
-                    attempt++;
-                    await new Promise(r => setTimeout(r, 50 * attempt));
-                    continue;
-                }
-                throw err;
-            }
-        }
+        await this.commandBus.execute(new SubmitPengerjaanActionCommand(
+            data.pengerjaanId,
+            data.soalId,
+            data.marked,
+            data.jawaban
+        ));
     }
 }

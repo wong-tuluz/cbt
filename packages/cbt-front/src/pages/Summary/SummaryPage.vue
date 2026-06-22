@@ -291,7 +291,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { useExamStore } from '@/stores/examStore'
 import { useToast } from '@/hooks/use-toast'
-import { endSession } from '@/services/workSessionService'
+import { endSession } from '@/services/pengerjaanService'
 
 const route = useRoute()
 const router = useRouter()

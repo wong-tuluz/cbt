@@ -3,7 +3,7 @@ import api from "./api"
 
 export async function getProktorSessions(jadwalId : string): Promise<IProktorSessionResponse> {
   try {
-    const response = await api.get<IProktorSessionResponse>(`/work-session-detail?jadwalId=${jadwalId}`)
+    const response = await api.get<IProktorSessionResponse>(`/pengerjaan-detail?jadwalId=${jadwalId}`)
     return response
   } catch (error) {
     console.error('Error fetching proktor sessions:', error)
@@ -13,7 +13,7 @@ export async function getProktorSessions(jadwalId : string): Promise<IProktorSes
 
 export async function resetStatus(sessionId : string) {
   try {
-    const response = await api.post<unknown>(`/work-session/${sessionId}/reset`)
+    const response = await api.post<unknown>(`/pengerjaan/${sessionId}/reset`)
     return response
   } catch (error) {
     console.error('Error session by ID:', error)
@@ -23,7 +23,7 @@ export async function resetStatus(sessionId : string) {
 
 export async function resetAllStatus(jadwalId: string) {
   try {
-    const response = await api.post<unknown>(`/work-session/reset-all?jadwalId=${jadwalId}`)
+    const response = await api.post<unknown>(`/pengerjaan/reset-all?jadwalId=${jadwalId}`)
     return response
   } catch (error) {
     console.error('Error resetting all sessions:', error)
@@ -33,7 +33,7 @@ export async function resetAllStatus(jadwalId: string) {
 
 export async function resetTime(sessionId: string) {
   try {
-    const response = await api.post<unknown>(`/work-session/${sessionId}/reset-time`)
+    const response = await api.post<unknown>(`/pengerjaan/${sessionId}/reset-time`)
     return response
   } catch (error) {
     console.error('Error resetting session time:', error)
@@ -43,7 +43,7 @@ export async function resetTime(sessionId: string) {
 
 export async function resetAllTime(jadwalId: string) {
   try {
-    const response = await api.post<unknown>(`/work-session/reset-time-all?jadwalId=${jadwalId}`)
+    const response = await api.post<unknown>(`/pengerjaan/reset-time-all?jadwalId=${jadwalId}`)
     return response
   } catch (error) {
     console.error('Error resetting all session times:', error)

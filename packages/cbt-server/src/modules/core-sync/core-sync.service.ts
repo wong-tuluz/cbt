@@ -7,7 +7,7 @@ import { AcaraService } from "../acara/acara.service";
 import { PaketSoalService } from "../paket-soal/paket-soal.service";
 import { SoalService, SoalType } from "../soal/soal.service";
 import { SiswaService } from "../siswa/siswa.service";
-import { acaraSiswaTable, acaraTable, db, jadwalTable, jawabanSoalTable, materiSoalTable, paketSoalTable, soalTable, workSessionAnswerTable, workSessionTable } from "src/common/db";
+import { acaraSiswaTable, acaraTable, db, jadwalTable, jawabanSoalTable, materiSoalTable, paketSoalTable, soalTable, pengerjaanJawabanTable, pengerjaanTable } from "src/common/db";
 import { eq, and } from "drizzle-orm";
 
 const SYNC_KEY = "event_sync";
@@ -156,10 +156,10 @@ export class CoreSyncService {
         const results: any[] = [];
 
         for (const jadwal of jadwals) {
-            const sessions = await db.select().from(workSessionTable)
+            const sessions = await db.select().from(pengerjaanTable)
                 .where(and(
-                    eq(workSessionTable.jadwalId, jadwal.id),
-                    eq(workSessionTable.status, 'finished')
+                    eq(pengerjaanTable.jadwalId, jadwal.id),
+                    eq(pengerjaanTable.status, 'finished')
                 ));
 
             for (const session of sessions) {
@@ -172,21 +172,21 @@ export class CoreSyncService {
                 if (!participation) continue;
 
                 const answers = await db.select({
-                    id: workSessionAnswerTable.id,
-                    soalId: workSessionAnswerTable.soalId,
+                    id: pengerjaanJawabanTable.id,
+                    soalId: pengerjaanJawabanTable.soalId,
                     soalRemoteId: soalTable.id, // Now same as id
                     materiSoalId: soalTable.materiSoalId,
                     soalOrder: soalTable.order,
-                    value: workSessionAnswerTable.value,
-                    jawabanSoalId: workSessionAnswerTable.jawabanSoalId,
+                    value: pengerjaanJawabanTable.value,
+                    jawabanSoalId: pengerjaanJawabanTable.jawabanSoalId,
                     isCorrect: jawabanSoalTable.isCorrect,
                     weightCorrect: soalTable.weightCorrect,
                     weightWrong: soalTable.weightWrong
                 })
-                    .from(workSessionAnswerTable)
-                    .innerJoin(soalTable, eq(workSessionAnswerTable.soalId, soalTable.id))
-                    .leftJoin(jawabanSoalTable, eq(workSessionAnswerTable.jawabanSoalId, jawabanSoalTable.id))
-                    .where(eq(workSessionAnswerTable.workSessionId, session.id));
+                    .from(pengerjaanJawabanTable)
+                    .innerJoin(soalTable, eq(pengerjaanJawabanTable.soalId, soalTable.id))
+                    .leftJoin(jawabanSoalTable, eq(pengerjaanJawabanTable.jawabanSoalId, jawabanSoalTable.id))
+                    .where(eq(pengerjaanJawabanTable.pengerjaanId, session.id));
 
                 let idMateri = session.materiSoalId;
                 if (!idMateri && answers.length > 0) {

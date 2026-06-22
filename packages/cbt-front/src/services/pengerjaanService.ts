@@ -1,7 +1,7 @@
 import api from './api'
 
-// Interface untuk response work session
-export interface IWorkSession {
+// Interface untuk response pengerjaan
+export interface IPengerjaan {
   id: string
   siswaId: string
   jadwalId: string
@@ -15,10 +15,10 @@ export interface IWorkSession {
   updatedAt: string
 }
 
-export interface IWorkSessionsResponse {
+export interface IPengerjaanResponse {
   success: boolean
   code: number
-  data: IWorkSession[]
+  data: IPengerjaan[]
 }
 
 export interface Payload {
@@ -29,16 +29,16 @@ export interface Payload {
 export interface CreateSessionResponse {
   success: boolean
   code: number
-  data?: { // Jadikan optional untuk handle error case
+  data?: {
     id: string
   }
   message?: string
 }
 
 // Function untuk get session by jadwal
-export async function getListSessionByJadwal(jadwalId: string): Promise<IWorkSessionsResponse> {
+export async function getListSessionByJadwal(jadwalId: string): Promise<IPengerjaanResponse> {
   try {
-    const response = await api.get<IWorkSessionsResponse>(`/work-session?jadwalId=${jadwalId}`)
+    const response = await api.get<IPengerjaanResponse>(`/pengerjaan?jadwalId=${jadwalId}`)
     return response
   } catch (error) {
     console.error('Error fetching sessions:', error)
@@ -47,9 +47,9 @@ export async function getListSessionByJadwal(jadwalId: string): Promise<IWorkSes
 }
 
 export async function createSession(payload: Payload){
-    return api.post<CreateSessionResponse>('/work-session', payload)
+    return api.post<CreateSessionResponse>('/pengerjaan', payload)
 }
 
 export async function endSession(sessionId: string){
-    return api.post<unknown | null>(`/work-session/${sessionId}/finish`)
+    return api.post<unknown | null>(`/pengerjaan/${sessionId}/finish`)
 }

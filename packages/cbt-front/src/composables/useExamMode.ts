@@ -1,5 +1,5 @@
 import { useToast } from '@/hooks/use-toast'
-import { endSession } from '@/services/workSessionService'
+import { endSession } from '@/services/pengerjaanService'
 import { getSoal, warnExam } from '@/services/eventService'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

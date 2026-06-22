@@ -449,7 +449,7 @@ import {
 import { getProktorSessions, resetStatus, resetAllStatus, resetTime, resetAllTime } from '@/services/proktorService'
 import type { IProktorSession } from '@/types/IProktorSession'
 import { useToast } from '@/hooks/use-toast'
-import { endSession } from '@/services/workSessionService'
+import { endSession } from '@/services/pengerjaanService'
 import { router } from '@/router'
 
 const route = useRoute()

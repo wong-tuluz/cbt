@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { db, acaraTable, acaraSiswaTable, jadwalTable, soalTable, materiSoalTable, workSessionTable } from 'src/common/db';
+import { db, acaraTable, acaraSiswaTable, jadwalTable, soalTable, materiSoalTable, pengerjaanTable } from 'src/common/db';
 import { eq, and, exists, count } from 'drizzle-orm';
 import { SaveAcaraCommand } from './commands/save-acara.command';
 import { AcaraRepository } from './repository/acara.repository';
@@ -185,11 +185,11 @@ export class AcaraService {
     }
 
     private async getAttemptedCount(siswaId: string, jadwalId: string): Promise<number> {
-        const rows = await db.select().from(workSessionTable)
+        const rows = await db.select().from(pengerjaanTable)
             .where(and(
-                eq(workSessionTable.jadwalId, jadwalId),
-                eq(workSessionTable.siswaId, siswaId),
-                eq(workSessionTable.status, 'finished'),
+                eq(pengerjaanTable.jadwalId, jadwalId),
+                eq(pengerjaanTable.siswaId, siswaId),
+                eq(pengerjaanTable.status, 'finished'),
             ));
 
         return rows.length;

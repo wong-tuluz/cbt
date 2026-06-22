@@ -1,14 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { db, workSessionTable } from "src/common/db";
+import { CommandBus } from "@nestjs/cqrs";
+import { db, pengerjaanTable } from "src/common/db";
 import { eq, and } from "drizzle-orm";
-import { AcaraService } from "../acara/acara.service";
+import { 
+    CreatePengerjaanCommand, 
+    FinishPengerjaanCommand, 
+    ResetPengerjaanCommand, 
+    ResetPengerjaanTimeCommand, 
+    WarnPengerjaanCommand, 
+    UnwarnPengerjaanCommand 
+} from "./commands/pengerjaan.commands";
 
 export type SessionStatus = 'in_progress' | 'finished';
 
 @Injectable()
 export class PengerjaanService {
     constructor(
-        private readonly acaraService: AcaraService
+        private readonly commandBus: CommandBus,
     ) { }
 
     async hasAccess(sessionId: string, siswaId: string) {
@@ -23,13 +31,13 @@ export class PengerjaanService {
         status?: SessionStatus
     }) {
         const qFilter = [
-            filter?.siswaId ? eq(workSessionTable.siswaId, filter.siswaId) : undefined,
-            filter?.jadwalId ? eq(workSessionTable.jadwalId, filter.jadwalId) : undefined,
-            filter?.status ? eq(workSessionTable.status, filter.status) : undefined
+            filter?.siswaId ? eq(pengerjaanTable.siswaId, filter.siswaId) : undefined,
+            filter?.jadwalId ? eq(pengerjaanTable.jadwalId, filter.jadwalId) : undefined,
+            filter?.status ? eq(pengerjaanTable.status, filter.status) : undefined
         ]
 
         const rows = await db.select()
-            .from(workSessionTable)
+            .from(pengerjaanTable)
             .where(and(...qFilter));
 
         return rows;
@@ -37,8 +45,8 @@ export class PengerjaanService {
 
     async findById(sessionId: string) {
         const row = await db.select()
-            .from(workSessionTable)
-            .where(eq(workSessionTable.id, sessionId))
+            .from(pengerjaanTable)
+            .where(eq(pengerjaanTable.id, sessionId))
             .limit(1)
             .then(rows => rows[0] ?? null)
 
@@ -48,102 +56,50 @@ export class PengerjaanService {
     }
 
     async create(siswaId: string, jadwalId: string, token: string) {
-        const jadwal = await this.acaraService.findJadwalById(jadwalId);
-
-        if (jadwal.token !== token) {
-            throw new BadRequestException("Invalid token jadwal")
-        }
-
-        const timeLimit = this.acaraService.getTimeLimit(jadwal, new Date());
-
-        const id = crypto.randomUUID();
-        const session = {
-            id,
-            siswaId,
-            jadwalId,
-            paketSoalId: jadwal.paketSoalId,
-            materiSoalId: null,
-            timeLimit,
-            status: 'in_progress' as SessionStatus,
-            strike: 0,
-            startedAt: new Date(),
-            finishedAt: null,
-        };
-
-        await this.upsert(session);
-        return session;
+        const { id } = await this.commandBus.execute(
+            new CreatePengerjaanCommand(siswaId, jadwalId, token)
+        );
+        return this.findById(id);
     }
 
     async finish(sessionId: string) {
-        const session = await this.findById(sessionId);
-        await db.update(workSessionTable)
-            .set({ status: 'finished', finishedAt: new Date(), updatedAt: new Date() })
-            .where(eq(workSessionTable.id, sessionId));
+        await this.commandBus.execute(new FinishPengerjaanCommand(sessionId));
     }
 
     async reset(sessionId: string) {
-        const now = new Date();
-        await db.update(workSessionTable)
-            .set({ status: 'in_progress', strike: 0, finishedAt: null, startedAt: now, updatedAt: now })
-            .where(eq(workSessionTable.id, sessionId));
+        await this.commandBus.execute(new ResetPengerjaanCommand(sessionId));
     }
 
     async resetAllByJadwal(jadwalId: string) {
-        const now = new Date();
-        await db.update(workSessionTable)
-            .set({ status: 'in_progress', strike: 0, finishedAt: null, startedAt: now, updatedAt: now })
-            .where(eq(workSessionTable.jadwalId, jadwalId));
+        const sessions = await db.select({ id: pengerjaanTable.id })
+            .from(pengerjaanTable)
+            .where(eq(pengerjaanTable.jadwalId, jadwalId));
+
+        for (const s of sessions) {
+            await this.commandBus.execute(new ResetPengerjaanCommand(s.id));
+        }
     }
 
     async resetTime(sessionId: string) {
-        const now = new Date();
-        await db.update(workSessionTable)
-            .set({ startedAt: now, updatedAt: now })
-            .where(eq(workSessionTable.id, sessionId));
+        await this.commandBus.execute(new ResetPengerjaanTimeCommand(sessionId));
     }
 
     async resetTimeByJadwal(jadwalId: string) {
-        const now = new Date();
-        await db.update(workSessionTable)
-            .set({ startedAt: now, updatedAt: now })
-            .where(eq(workSessionTable.jadwalId, jadwalId));
+        const sessions = await db.select({ id: pengerjaanTable.id })
+            .from(pengerjaanTable)
+            .where(eq(pengerjaanTable.jadwalId, jadwalId));
+
+        for (const s of sessions) {
+            await this.commandBus.execute(new ResetPengerjaanTimeCommand(s.id));
+        }
     }
 
     async warn(sessionId: string) {
-        const session = await this.findById(sessionId);
-        const newStrike = session.strike + 1;
-        await db.update(workSessionTable)
-            .set({ strike: newStrike, updatedAt: new Date() })
-            .where(eq(workSessionTable.id, sessionId));
-        
-        return {
-            id: session.id,
-            status: session.status,
-            strike: newStrike,
-        };
+        return await this.commandBus.execute(new WarnPengerjaanCommand(sessionId));
     }
 
     async unwarn(sessionId: string) {
-        await db.update(workSessionTable)
-            .set({ strike: 0, updatedAt: new Date() })
-            .where(eq(workSessionTable.id, sessionId));
-
-        return {
-            id: sessionId,
-            strike: 0,
-        };
-    }
-
-    private async upsert(session: any) {
-        const { id, ...properties } = session;
-        await db.insert(workSessionTable)
-            .values({ id, ...properties })
-            .onDuplicateKeyUpdate({
-                set: {
-                    ...properties,
-                    updatedAt: new Date()
-                }
-            });
+        return await this.commandBus.execute(new UnwarnPengerjaanCommand(sessionId));
     }
 
     isExpired(session: { startedAt: Date, timeLimit: number }) {

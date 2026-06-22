@@ -6,8 +6,6 @@ import { PaketSoalModule } from './modules/paket-soal/paket-soal.module';
 import { AcaraModule } from './modules/acara/acara.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { PengerjaanModule } from './modules/pengerjaan/pengerjaan.module';
-import { PengerjaanStateModule } from './modules/pengerjaan-state/pengerjaan-state.module';
-import { PengerjaanDetailModule } from './modules/pengerjaan-detail/pengerjaan-detail.module';
 import { CoreSyncModule } from './modules/core-sync/core-sync.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './modules/redis/redis.module';
@@ -29,8 +27,6 @@ import { join } from 'path';
     AcaraModule,
     SettingsModule,
     PengerjaanModule,
-    PengerjaanStateModule,
-    PengerjaanDetailModule,
     CoreSyncModule,
     RedisModule,
   ],

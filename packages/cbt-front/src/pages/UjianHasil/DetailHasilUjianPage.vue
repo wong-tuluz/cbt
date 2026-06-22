@@ -189,12 +189,12 @@ import {
   ClockIcon,
   MoveLeft,
 } from 'lucide-vue-next'
-import { getListSessionByJadwal, type IWorkSession } from '@/services/workSessionService'
+import { getListSessionByJadwal, type IPengerjaan } from '@/services/pengerjaanService'
 const route = useRoute()
 const router = useRouter()
 
 const jadwalId = ref<string>(route.params.id as string)
-const sessions = ref<IWorkSession[]>([])
+const sessions = ref<IPengerjaan[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const searchQuery = ref('')
@@ -296,7 +296,7 @@ const calculateDuration = (start: string, end: string) => {
 }
 
 // Handlers
-const handleViewSession = (session: IWorkSession) => {
+const handleViewSession = (session: IPengerjaan) => {
   router.push(`/exam-result/${session.id}`)
 }
 

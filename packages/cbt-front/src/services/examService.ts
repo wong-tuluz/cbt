@@ -54,7 +54,7 @@ export async function getExamById(): Promise<ExamSession> {
 
 // Submit jawaban per soal
 export async function submitAnswer(sessionId: string, payload: SubmitAnswerPayload) {
-  return api.post<unknown | null>(`/work-session/${sessionId}/submit`, payload)
+  return api.post<unknown | null>(`/pengerjaan/${sessionId}/submit`, payload)
 }
 
 // Submit exam final (jika ada endpoint terpisah)
@@ -90,7 +90,7 @@ export async function getSessionState(sessionId: string) {
       isAnswered: boolean
       options: Array<{ jawabanSoalId: string; value: string; isSelected: boolean }>
     }>
-  }>(`/work-session/${sessionId}/state`)
+  }>(`/pengerjaan/${sessionId}/state`)
 }
 
 // Get exam results

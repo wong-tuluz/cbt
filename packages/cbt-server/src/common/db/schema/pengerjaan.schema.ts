@@ -1,8 +1,8 @@
-import { mysqlTable, varchar, datetime, boolean, mysqlEnum, index } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, datetime, boolean, mysqlEnum, index, text } from 'drizzle-orm/mysql-core';
 import { sql } from 'drizzle-orm';
 import { int } from 'drizzle-orm/mysql-core';
 
-export const workSessionTable = mysqlTable('work_sessions', {
+export const pengerjaanTable = mysqlTable('pengerjaan', {
     id: varchar('id', { length: 255 }).primaryKey(),
     siswaId: varchar('siswa_id', { length: 255 }).notNull(),
     jadwalId: varchar('jadwal_id', { length: 255 }).notNull(),
@@ -29,9 +29,9 @@ export const workSessionTable = mysqlTable('work_sessions', {
     index('jadwal_idx').on(table.jadwalId),
 ]);
 
-export const workSessionAnswerTable = mysqlTable('work_session_answers', {
+export const pengerjaanJawabanTable = mysqlTable('pengerjaan_jawaban', {
     id: varchar('id', { length: 255 }).primaryKey(),
-    workSessionId: varchar('work_session_id', { length: 255 }).notNull(),
+    pengerjaanId: varchar('pengerjaan_id', { length: 255 }).notNull(),
     soalId: varchar('soal_id', { length: 255 }).notNull(),
     jawabanSoalId: varchar('jawaban_soal_id', { length: 255 }),
     value: varchar('value', { length: 4096 }),
@@ -40,16 +40,28 @@ export const workSessionAnswerTable = mysqlTable('work_session_answers', {
         .default(sql`now()`),
     updatedAt: datetime('updated_at').$onUpdate(() => new Date()),
 }, (table) => [
-    index('work_session_idx').on(table.workSessionId),
+    index('pengerjaan_idx').on(table.pengerjaanId),
     index('soal_idx').on(table.soalId),
 ]);
 
-export const workSessionMarkerTable = mysqlTable('work_session_markers', {
+export const pengerjaanMarkerTable = mysqlTable('pengerjaan_marker', {
     id: varchar('id', { length: 255 }).primaryKey(),
-    workSessionId: varchar('work_session_id', { length: 255 }).notNull(),
+    pengerjaanId: varchar('pengerjaan_id', { length: 255 }).notNull(),
     soalId: varchar('soal_id', { length: 255 }).notNull(),
     isMarked: boolean('is_marked').notNull().default(false),
 }, (table) => [
-    index('work_session_idx').on(table.workSessionId),
+    index('pengerjaan_idx').on(table.pengerjaanId),
     index('soal_idx').on(table.soalId),
+]);
+
+export const pengerjaanEventTable = mysqlTable('pengerjaan_event', {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    pengerjaanId: varchar('pengerjaan_id', { length: 255 }).notNull(),
+    eventType: varchar('event_type', { length: 255 }).notNull(),
+    payload: text('payload').notNull(),
+    createdAt: datetime('created_at')
+        .notNull()
+        .default(sql`now()`),
+}, (table) => [
+    index('pengerjaan_idx').on(table.pengerjaanId),
 ]);

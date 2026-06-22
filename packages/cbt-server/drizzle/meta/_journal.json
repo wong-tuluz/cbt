@@ -15,6 +15,13 @@
       "when": 1782123073292,
       "tag": "0001_panoramic_lester",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1782124304144,
+      "tag": "0002_talented_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }

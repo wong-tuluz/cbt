@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { PengerjaanService } from "../pengerjaan/pengerjaan.service";
+import { PengerjaanService } from "./pengerjaan.service";
 import { SiswaService } from "../siswa/siswa.service";
 import { AcaraService } from "../acara/acara.service";
-import { PengerjaanStateService } from "../pengerjaan-state/pengerjaan-state.service";
+import { PengerjaanStateService } from "./pengerjaan-state.service";
 
 @Injectable()
 export class PengerjaanDetailService {

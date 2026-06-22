@@ -28,7 +28,7 @@ export interface ExamResultResponse {
 
 // Get exam result by session ID
 export async function getExamResult(sessionId: string): Promise<ExamResultResponse> {
-  return api.get<ExamResultResponse>(`/work-session/${sessionId}/result`)
+  return api.get<ExamResultResponse>(`/pengerjaan/${sessionId}/result`)
 }
 
 // export function getListSessionByJadwal(jadwalId: string) {

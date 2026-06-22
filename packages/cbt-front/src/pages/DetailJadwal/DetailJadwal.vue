@@ -261,14 +261,14 @@ import { getEventById, getSoal } from '@/services/eventService'
 import { 
   createSession, 
   getListSessionByJadwal, 
-  type IWorkSession,
+  type IPengerjaan,
   type Payload 
-} from '@/services/workSessionService'
+} from '@/services/pengerjaanService'
 
 const route = useRoute()
 const router = useRouter()
 
-const sessions = ref<IWorkSession[]>([])
+const sessions = ref<IPengerjaan[]>([])
 const exam = ref<Event | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)

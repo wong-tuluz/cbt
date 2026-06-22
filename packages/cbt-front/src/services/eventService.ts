@@ -94,11 +94,11 @@ export async function startExam(examId: string): Promise<{ success: boolean; mes
 }
 
 export async function getSoal(sessionId: string): Promise<ExamSessionResponse> {
-  return api.get<ExamSessionResponse>(`/work-session/${sessionId}/state`)
+  return api.get<ExamSessionResponse>(`/pengerjaan/${sessionId}/state`)
 }
 
 export async function warnExam(sessionId: string): Promise<ExamSessionResponse> {
-  return api.post<ExamSessionResponse>(`/work-session/${sessionId}/warn`)
+  return api.post<ExamSessionResponse>(`/pengerjaan/${sessionId}/warn`)
 }
 
 // ========== HELPER FUNCTIONS ==========
