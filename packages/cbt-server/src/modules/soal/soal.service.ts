@@ -1,12 +1,16 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { db, soalTable, jawabanSoalTable } from 'src/common/db';
 import { eq, asc } from 'drizzle-orm';
+import { CommandBus } from '@nestjs/cqrs';
+import { SaveSoalCommand } from './commands/save-soal.command';
 
 export type SoalType = 'multiple-choice' | 'essay' | 'single-choice';
 
 @Injectable()
 export class SoalService {
-    constructor() { }
+    constructor(
+        private readonly commandBus: CommandBus,
+    ) { }
 
     async save(input: {
         id?: string;
@@ -24,64 +28,19 @@ export class SoalService {
             order: number;
         }>;
     }) {
-        if (input.type === 'essay' && input.jawaban?.length) {
-            throw new BadRequestException('Essay soal must not have jawaban');
-        }
-
-        const soalId = input.id ?? crypto.randomUUID();
-        const payload = {
-            id: soalId,
-            remoteId: input.remoteId,
-            materiSoalId: input.materiSoalId,
-            type: input.type,
-            prompt: input.prompt,
-            order: input.order,
-            weightCorrect: input.weightCorrect,
-            weightWrong: input.weightWrong,
-        };
-
-        await db.transaction(async (tx) => {
-            await tx.insert(soalTable).values(payload).onDuplicateKeyUpdate({
-                set: {
-                    remoteId: payload.remoteId,
-                    materiSoalId: payload.materiSoalId,
-                    type: payload.type,
-                    prompt: payload.prompt,
-                    order: payload.order,
-                    weightCorrect: payload.weightCorrect,
-                    weightWrong: payload.weightWrong,
-                    updatedAt: new Date(),
-                }
-            });
-
-            if (input.jawaban) {
-                // For simplified sync, we often replace siblings or update them if IDs are provided.
-                // To keep it simple and consistent with previous "update" logic:
-                // If we have IDs for jawaban, we CAN upsert them too.
-                // But typically for a "save" of a parent with children, we want the children list to match exactly.
-                
-                // If we use IDs from remote, we should probably NOT delete all first if we want to preserve them.
-                // However, the previous "update" deleted all. 
-                // Let's use a more robust "delete ones not in list" or just "delete all and re-insert" if no IDs are provided.
-                
-                // Given we are syncing and provide IDs:
-                await tx.delete(jawabanSoalTable).where(eq(jawabanSoalTable.soalId, soalId));
-                
-                if (input.jawaban.length > 0) {
-                    await tx.insert(jawabanSoalTable).values(
-                        input.jawaban.map((j) => ({
-                            id: j.id ?? crypto.randomUUID(),
-                            soalId,
-                            value: j.value,
-                            isCorrect: j.isCorrect,
-                            order: j.order,
-                        })),
-                    );
-                }
-            }
-        });
-
-        return { id: soalId };
+        return this.commandBus.execute(
+            new SaveSoalCommand(
+                input.id,
+                input.materiSoalId,
+                input.type,
+                input.prompt,
+                input.order,
+                input.weightCorrect,
+                input.weightWrong,
+                input.remoteId,
+                input.jawaban,
+            ),
+        );
     }
 
     async delete(soalId: string) {

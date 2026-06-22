@@ -7,12 +7,15 @@ import {
     Param,
     Patch,
     Post,
+    Put,
     Query,
 } from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
+import { CommandBus } from '@nestjs/cqrs';
 import { SoalService } from './soal.service';
+import { SaveSoalCommand } from './commands/save-soal.command';
 
 export const SoalTypeSchema = z.enum([
     'single-choice',
@@ -62,11 +65,41 @@ export class UpdateSoalDto extends createZodDto(UpdateSoalSchema) { }
 export class SoalController {
     constructor(
         private readonly soalService: SoalService,
+        private readonly commandBus: CommandBus,
     ) { }
 
     @Post()
     async create(@Body() body: CreateSoalDto) {
-        return this.soalService.save(body);
+        return this.commandBus.execute(
+            new SaveSoalCommand(
+                undefined,
+                body.materiSoalId,
+                body.type,
+                body.prompt,
+                body.order,
+                body.weightCorrect,
+                body.weightWrong,
+                undefined,
+                body.jawaban,
+            ),
+        );
+    }
+
+    @Put(':id')
+    async updatePut(@Param('id') id: string, @Body() body: CreateSoalDto) {
+        return this.commandBus.execute(
+            new SaveSoalCommand(
+                id,
+                body.materiSoalId,
+                body.type,
+                body.prompt,
+                body.order,
+                body.weightCorrect,
+                body.weightWrong,
+                undefined,
+                body.jawaban,
+            ),
+        );
     }
 
     @Patch(':id')
@@ -75,8 +108,20 @@ export class SoalController {
         if (!existing) {
             throw new NotFoundException('Soal not found');
         }
-        await this.soalService.save({ ...existing, ...body });
-        return { success: true };
+        const merged = { ...existing, ...body };
+        return this.commandBus.execute(
+            new SaveSoalCommand(
+                id,
+                merged.materiSoalId,
+                merged.type,
+                merged.prompt,
+                merged.order,
+                merged.weightCorrect,
+                merged.weightWrong,
+                merged.remoteId,
+                merged.jawaban,
+            ),
+        );
     }
 
     @Delete(':id')
