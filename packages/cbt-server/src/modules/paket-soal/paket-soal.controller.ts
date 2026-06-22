@@ -6,41 +6,56 @@ import {
     Param,
     Patch,
     Post,
+    Put,
 } from '@nestjs/common';
-import { createZodDto } from 'nestjs-zod';
-import z from 'zod';
+import { CommandBus } from '@nestjs/cqrs';
 import { PaketSoalService } from './paket-soal.service';
-
-export const CreatePaketSoalSchema = z.object({
-    title: z.string().min(1),
-    description: z.string().nullable().optional(),
-});
-
-export const UpdatePaketSoalSchema = z.object({
-    title: z.string().min(1).optional(),
-    description: z.string().nullable().optional(),
-});
-
-export class CreatePaketSoalDto extends createZodDto(CreatePaketSoalSchema) { }
-
-export class UpdatePaketSoalDto extends createZodDto(UpdatePaketSoalSchema) { }
+import { CreatePaketSoalDto, UpdatePaketSoalDto } from './dto/paket-soal.dto';
+import { SavePaketSoalCommand } from './commands/save-paket-soal.command';
 
 @Controller('paket-soal')
 export class PaketSoalController {
     constructor(
         private readonly paketSoalService: PaketSoalService,
+        private readonly commandBus: CommandBus,
     ) { }
 
     @Post()
     async create(@Body() body: CreatePaketSoalDto) {
-        return this.paketSoalService.save(body);
+        return this.commandBus.execute(
+            new SavePaketSoalCommand(
+                undefined,
+                body.title,
+                body.description,
+                undefined,
+            ),
+        );
+    }
+
+    @Put(':id')
+    async updatePut(@Param('id') id: string, @Body() body: CreatePaketSoalDto) {
+        return this.commandBus.execute(
+            new SavePaketSoalCommand(
+                id,
+                body.title,
+                body.description,
+                undefined,
+            ),
+        );
     }
 
     @Patch(':id')
     async update(@Param('id') id: string, @Body() body: UpdatePaketSoalDto) {
         const existing = await this.paketSoalService.findById(id);
-        await this.paketSoalService.save({ ...existing, ...body });
-        return { success: true };
+        const merged = { ...existing, ...body };
+        return this.commandBus.execute(
+            new SavePaketSoalCommand(
+                id,
+                merged.title,
+                merged.description,
+                merged.remoteId,
+            ),
+        );
     }
 
     @Delete(':id')

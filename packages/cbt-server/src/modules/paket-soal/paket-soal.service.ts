@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import { db, paketSoalTable, materiSoalTable, soalTable } from 'src/common/db';
 import { eq, count } from 'drizzle-orm';
+import { SavePaketSoalCommand } from './commands/save-paket-soal.command';
 
 @Injectable()
 export class PaketSoalService {
-    constructor() { }
+    constructor(
+        private readonly commandBus: CommandBus,
+    ) { }
 
     async save(input: {
         id?: string;
@@ -12,24 +16,14 @@ export class PaketSoalService {
         description?: string | null;
         remoteId?: string | null;
     }) {
-        const id = input.id ?? crypto.randomUUID();
-        const payload = {
-            id,
-            remoteId: input.remoteId,
-            title: input.title,
-            description: input.description ?? null,
-        };
-
-        await db.insert(paketSoalTable).values(payload).onDuplicateKeyUpdate({
-            set: {
-                remoteId: payload.remoteId,
-                title: payload.title,
-                description: payload.description,
-                updatedAt: new Date(),
-            }
-        });
-
-        return { id };
+        return this.commandBus.execute(
+            new SavePaketSoalCommand(
+                input.id,
+                input.title,
+                input.description,
+                input.remoteId,
+            ),
+        );
     }
 
     async delete(id: string) {
